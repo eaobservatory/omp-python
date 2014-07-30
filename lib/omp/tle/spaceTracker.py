@@ -40,25 +40,34 @@ class SpaceTrack(object):
     def __init__(self):
         self.id_list = []
         self.req_list = []
+        self.rurl = ""
 
     def add_id(self, catid):
         """Take NORAD Cat ID and adds it to the list."""
+        if type(catid) is not str:
+            catid = str(catid)
         if len(catid) > 5:
             try:
-                raise ValueError("catid requires 5 or fewer digits.")
+                raise ValueError("NORAD catid requires 5 or fewer digits.")
             except ValueError:
                 print "Not good."
                 raise
             return
-        elif len(catid) < 5:
-            temp = (5 - len(catid)) * '0'
-            catid = temp + catid
         self.id_list.append(catid)
 
-    def build_requests(self):
-        """Lumps the IDs that can be lumped and creates a batch of requests."""
-        pass
+    def build_request(self):
+        """Builds a request"""
+        #Turns all ids into integers to strip spurious preceding 0's
+        temp_set = set([int(r) for r in self.id_list])
+        #Sort back into a list.
+        temp_list = sorted(list(temp_set))
+        temp_list = [str(r) for r in temp_list]
+        #comma separates
+        temp_str = ",".join(temp_list)
+        #Currently just what we need. But this could be parameterized.
+        self.rurl = ("https://www.space-track.org/basicspacedata/query/class/tle/NORAD_CAT_ID/" +
+                     temp_str + "/orderby/EPOCH desc/limit/1/format/tle")
 
-    def send_requests(self):
-        """Sends current batch of requests."""
+    def send_request(self):
+        """Sends current request."""
         pass

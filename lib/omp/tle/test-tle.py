@@ -1,11 +1,13 @@
 #test-tle.py
 import unittest
 import random
+import time
 import spaceTracker
+import parseTLE
+from submit_omp import SubmitOMP
 
 
 class TestSpaceTrack(unittest.TestCase):
-
 	def setUp(self):
 		self.st = spaceTracker.SpaceTrack()
 
@@ -52,5 +54,65 @@ class TestSpaceTrack(unittest.TestCase):
 		self.assertNotEqual(self.st.rurl.find(comma_str), None)
 
 
+class TestTLEParse(unittest.TestCase):
+	def setUp(self):
+		self.parse = parseTLE.TLEParser()
+
+	def tearDown(self):
+		self.parse = None
+
+	def test_print_parse(self):
+		"""print parse"""
+		ans = self.parse.parse_tle("1 25544U 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",
+							 "2 25544 051.6472 269.5323 0006361 286.1580 210.2768 15.50427728897273")
+		self.assertEqual(ans, {'E': 0.0006361, 'RA A Node': 4.7042260754731124,
+							   'First D': '-.00005757', 'Epoch': 1406292189.682752,
+							   'Intl Desig': '98067A  ', 'Bstar': -0.000091404,
+							   'Inclination': 0.9014136894360153, 'Mean Motion': 15.50427728,
+							   'NORAD': '25544', 'Perigee': 4.994399280921934,
+							   'ElSet Type': '0', 'Element Num': ' 769',
+							   'Second D': ' 00000-0', 'Rev at Epoch': '89727',
+							   'Class': 'U', 'Mean Anomoly': 3.6700225005576126})
+
+	def test_convert_epoch(self):
+		"""Test Epoch converter"""
+		epoch = "14099.5"
+		self.assertEqual(1397044800.0, self.parse.convert_epoch(epoch))
+
+	def test_export_tle_omp(self):
+		ans = self.parse.parse_tle("1 25544U 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",
+							 "2 25544 051.6472 269.5323 0006361 286.1580 210.2768 15.50427728897273")
+		export = self.parse.export_tle_omp(ans)
+		self.assertEqual(export,{'target': '25544', 'el8': 15.50427728,
+								 'el2': -0.000091404, 'el3': 0.9014136894360153,
+								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
+								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
+								 'el5': 0.0006361} )
+
+class TestSubmitOMP(unittest.TestCase):
+	def setUp(self):
+		self.subomp = SubmitOMP()
+
+	def tearDown(self):
+		self.subomp = None
+
+	def test_enter_omp(self):
+		self.assertEqual(('omp', ''), self.subomp.enter_omp())
+
+	def test_submit_tle(self):
+		self.subomp.submit_tle({'target': '25544', 'el8': 15.50427728,
+								 'el2': -0.000091404, 'el3': 0.9014136894360153,
+								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
+								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
+								 'el5': 0.0006361})
+
+
+
 suite = unittest.TestLoader().loadTestsFromTestCase(TestSpaceTrack)
+unittest.TextTestRunner(verbosity=3).run(suite)
+
+suite = unittest.TestLoader().loadTestsFromTestCase(TestTLEParse)
+unittest.TextTestRunner(verbosity=3).run(suite)
+
+suite = unittest.TestLoader().loadTestsFromTestCase(TestSubmitOMP)
 unittest.TextTestRunner(verbosity=3).run(suite)

@@ -1,13 +1,5 @@
-# from requests import session
+from requests import session
 # import sys
-
-# def helpUser():
-#     '''Prints help directions'''
-#     print '''spaceTracker.py -- For use by JAC
-# ********************************************
-# Please enter a list of space separated satellite numbers or
-# a path to a text file.'''
-#     return
 
 # def parse(nums_in): #not going to work. Will take one satellite the wrong way.
 #     list_nums = []
@@ -70,4 +62,10 @@ class SpaceTrack(object):
 
     def send_request(self):
         """Sends current request."""
-        pass
+        url = "https://www.space-track.org/ajaxauth/login"
+        user = "ukirtot@jach.hawaii.edu"
+        password = ""
+        idpass = {'identity': user, 'password': password}
+        with session() as ss:
+            r = ss.post(url, data=idpass)
+        return ss.get(rurl)

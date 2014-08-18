@@ -105,6 +105,7 @@ class TestSubmitOMP(unittest.TestCase):
 								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
 								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
 								 'el5': 0.0006361})
+		self.assertEqual(1,1)
 
 
 

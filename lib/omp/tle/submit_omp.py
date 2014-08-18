@@ -1,19 +1,18 @@
 #submit_omp.py
 
 import Sybase
-from contextlib import closing
 
 class SubmitOMP(object):
 	"""Opens connection to omp database and allows tles to be submitted."""
 	def __init__(self):
 		user, password = self.enter_omp()
 		self.db = Sybase.connect('SYB_JAC', user, password, 'devomp')
+		self.cursor = self.db.cursor()
 
 	def submit_tle(self, tle):
 		"""Takes tle and submits it into omp db"""
-		with closing(self.db.cursor()) as cursor:
-			cursor.execute("""
-				INSERT INTO omptle 
+		self.cursor.execute("""
+				INSERT INTO omptle
 				(target, el1, el2, el3, el4, el5, el6, el7, el8)
 				VALUES
 				(@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8)
@@ -29,6 +28,7 @@ class SubmitOMP(object):
 						   	'@el7': tle["el7"],
 						   	'@el8': tle["el8"]
 						   })
+		self.db.commit()
 
 	def enter_omp(self):
 		"""Finds and enters correct data to get in db"""

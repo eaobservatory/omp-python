@@ -1,8 +1,8 @@
-#tle_script.py
+#!/local/python/bin/python2
 
-import spaceTracker
-import parseTLE
-import tle_omp
+import omp.tle.spaceTracker
+import omp.tle.parseTLE
+import omp.tle.tle_omp
 
 import sys
 
@@ -15,7 +15,7 @@ errors = []
 ids = omp.retrieve_ids()
 
 for cat_id in ids:
-	if not cat_id.find("NORAD"):
+	if not cat_id.startswith("NORAD"):
 		errors.append(cat_id)
 		continue
 	cat_id = cat_id[5:]

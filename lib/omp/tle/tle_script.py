@@ -2,21 +2,23 @@
 
 import spaceTracker
 import parseTLE
-import submit_omp
+import tle_omp
 
 import sys
 
 strack = spaceTracker.SpaceTrack()
 parse = parseTLE.TLEParser()
-submit = submit_omp.SubmitOMP()
+omp = tle_omp.TLE_OMP()
 
-if len(sys.argv) < 2:
-	print "Please enter catolog ids, comma separated."
-	sys.exit()
+errors = []
 
-ids = sys.argv[1].split(",")
+ids = omp.retrieve_ids()
 
 for cat_id in ids:
+	if not cat_id.find("NORAD"):
+		errors.append(cat_id)
+		continue
+	cat_id = cat_id[5:]
 	strack.add_id(cat_id)
 
 strack.build_request()
@@ -37,3 +39,7 @@ for tle in tles:
 	elif flag == 0:
 		line1 = tle
 		flag = 1
+
+if len(errors) != 0:
+	err_str = "Errors encountered" + ", ".join(errors)
+	sys.exit(err_str)

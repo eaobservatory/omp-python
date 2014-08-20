@@ -4,7 +4,7 @@ import random
 import time
 import spaceTracker
 import parseTLE
-from submit_omp import SubmitOMP
+from tle_omp import TLE_OMP
 
 
 class TestSpaceTrack(unittest.TestCase):
@@ -89,9 +89,9 @@ class TestTLEParse(unittest.TestCase):
 								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
 								 'el5': 0.0006361} )
 
-class TestSubmitOMP(unittest.TestCase):
+class TestTLEOMP(unittest.TestCase):
 	def setUp(self):
-		self.subomp = SubmitOMP()
+		self.subomp = TLE_OMP()
 
 	def tearDown(self):
 		self.subomp = None
@@ -99,13 +99,16 @@ class TestSubmitOMP(unittest.TestCase):
 	def test_enter_omp(self):
 		self.assertEqual(('omp', ''), self.subomp.enter_omp())
 
-	def test_submit_tle(self):
-		self.subomp.submit_tle({'target': '25544', 'el8': 15.50427728,
-								 'el2': -0.000091404, 'el3': 0.9014136894360153,
-								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
-								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
-								 'el5': 0.0006361})
-		self.assertEqual(1,1)
+	# def test_submit_tle(self):
+	# 	self.subomp.submit_tle({'target': '25544', 'el8': 15.50427728,
+	# 							 'el2': -0.000091404, 'el3': 0.9014136894360153,
+	# 							 'el1': 1406292189.682752, 'el6': 4.994399280921934,
+	# 							 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
+	# 							 'el5': 0.0006361})
+	# 	self.assertEqual(1,1)
+
+	def test_retrieve_ids(self):
+		self.assertEqual(["39504"], self.subomp.retrieve_ids())
 
 
 
@@ -115,5 +118,5 @@ unittest.TextTestRunner(verbosity=3).run(suite)
 suite = unittest.TestLoader().loadTestsFromTestCase(TestTLEParse)
 unittest.TextTestRunner(verbosity=3).run(suite)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSubmitOMP)
+suite = unittest.TestLoader().loadTestsFromTestCase(TestTLEOMP)
 unittest.TextTestRunner(verbosity=3).run(suite)

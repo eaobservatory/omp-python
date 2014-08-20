@@ -1,8 +1,8 @@
-#submit_omp.py
+#tle_omp.py
 
 import Sybase
 
-class SubmitOMP(object):
+class TLE_OMP(object):
 	"""Opens connection to omp database and allows tles to be submitted."""
 	def __init__(self):
 		user, password = self.enter_omp()
@@ -27,6 +27,32 @@ class SubmitOMP(object):
 						   	'@el6': tle["el6"],
 						   	'@el7': tle["el7"],
 						   	'@el8': tle["el8"]
+						   })
+		self.db.commit()
+
+	def retrieve_ids(self):
+		"""Finds all auto update tles"""
+		self.cursor.execute("SELECT target FROM ompobs WHERE coordstype=\"AUTO-TLE\"")
+		return [r[0] for r in self.cursor.fetchall()]
+
+	def place_tle_elements(self, tle):
+		"""Places elements in omp."""
+		self.cursor.execute("""
+				UPDATE ompobs SET
+				el1=@el1 AND el2=@el2 AND el3=@el3 AND el4=@el4 AND
+				el5=@el5 AND el6=@el6 AND el7=@el7 AND el8=@el8
+				WHERE target=NORAD@target
+						   """,
+						   {
+						   	'@el1': tle["el1"],
+						   	'@el2': tle["el2"],
+						   	'@el3': tle["el3"],
+						   	'@el4': tle["el4"],
+						   	'@el5': tle["el5"],
+						   	'@el6': tle["el6"],
+						   	'@el7': tle["el7"],
+						   	'@el8': tle["el8"],
+						   	'@target': tle["target"]
 						   })
 		self.db.commit()
 

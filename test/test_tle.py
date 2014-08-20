@@ -2,9 +2,9 @@
 import unittest
 import random
 import time
-import spaceTracker
-import parseTLE
-from tle_omp import TLE_OMP
+import omp.tle.spaceTracker
+import omp.tle.parseTLE
+from omp.tle.tle_omp import TLE_OMP
 
 
 class TestSpaceTrack(unittest.TestCase):
@@ -109,14 +109,3 @@ class TestTLEOMP(unittest.TestCase):
 
 	def test_retrieve_ids(self):
 		self.assertEqual(["39504"], self.subomp.retrieve_ids())
-
-
-
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSpaceTrack)
-unittest.TextTestRunner(verbosity=3).run(suite)
-
-suite = unittest.TestLoader().loadTestsFromTestCase(TestTLEParse)
-unittest.TextTestRunner(verbosity=3).run(suite)
-
-suite = unittest.TestLoader().loadTestsFromTestCase(TestTLEOMP)
-unittest.TextTestRunner(verbosity=3).run(suite)

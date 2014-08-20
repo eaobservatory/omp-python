@@ -2,8 +2,8 @@
 import unittest
 import random
 import time
-import omp.tle.spaceTracker
-import omp.tle.parseTLE
+import omp.tle.spaceTracker as spaceTracker
+import omp.tle.parseTLE as parseTLE
 from omp.tle.tle_omp import TLE_OMP
 
 
@@ -69,7 +69,7 @@ class TestTLEParse(unittest.TestCase):
 							   'First D': '-.00005757', 'Epoch': 1406292189.682752,
 							   'Intl Desig': '98067A  ', 'Bstar': -0.000091404,
 							   'Inclination': 0.9014136894360153, 'Mean Motion': 15.50427728,
-							   'NORAD': '25544', 'Perigee': 4.994399280921934,
+							   'NORAD': 'NORAD25544', 'Perigee': 4.994399280921934,
 							   'ElSet Type': '0', 'Element Num': ' 769',
 							   'Second D': ' 00000-0', 'Rev at Epoch': '89727',
 							   'Class': 'U', 'Mean Anomoly': 3.6700225005576126})
@@ -83,7 +83,7 @@ class TestTLEParse(unittest.TestCase):
 		ans = self.parse.parse_tle("1 25544U 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",
 							 "2 25544 051.6472 269.5323 0006361 286.1580 210.2768 15.50427728897273")
 		export = self.parse.export_tle_omp(ans)
-		self.assertEqual(export,{'target': '25544', 'el8': 15.50427728,
+		self.assertEqual(export,{'target': 'NORAD25544', 'el8': 15.50427728,
 								 'el2': -0.000091404, 'el3': 0.9014136894360153,
 								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
 								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
@@ -91,21 +91,26 @@ class TestTLEParse(unittest.TestCase):
 
 class TestTLEOMP(unittest.TestCase):
 	def setUp(self):
-		self.subomp = TLE_OMP()
+		self.subomp = TLE_OMP(omp="devomp") #This is default but just setting it anyway.
 
 	def tearDown(self):
 		self.subomp = None
 
 	def test_enter_omp(self):
-		self.assertEqual(('omp', ''), self.subomp.enter_omp())
+		user,password = self.subomp.enter_omp()
+	 	self.assertIsInstance(user, str)
+	 	self.assertIsInstance(password, str)
 
-	# def test_submit_tle(self):
-	# 	self.subomp.submit_tle({'target': '25544', 'el8': 15.50427728,
-	# 							 'el2': -0.000091404, 'el3': 0.9014136894360153,
-	# 							 'el1': 1406292189.682752, 'el6': 4.994399280921934,
-	# 							 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
-	# 							 'el5': 0.0006361})
-	# 	self.assertEqual(1,1)
+	def test_submit_tle(self):
+		self.subomp.submit_tle({'target': 'NORAD25544', 'el8': 15.50427728,
+								 'el2': -0.000091404, 'el3': 0.9014136894360153,
+								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
+								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
+								 'el5': 0.0006361})
+		self.assertEqual(1,1)
+
+	def test_update_tle_ompobs(self):
+		self.assertEqual(1,1)
 
 	def test_retrieve_ids(self):
-		self.assertEqual(["39504"], self.subomp.retrieve_ids())
+		self.assertEqual(["NORAD39504"], self.subomp.retrieve_ids())

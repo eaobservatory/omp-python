@@ -1,12 +1,15 @@
 #tle_omp.py
 
 import Sybase
+import omp.siteconfig as siteconfig
 
 class TLE_OMP(object):
-	"""Opens connection to omp database and allows tles to be submitted."""
-	def __init__(self):
+	"""Opens connection to omp database and allows tles to be submitted.
+	   Defaults to devomp
+	"""
+	def __init__(self, omp="devomp"):
 		user, password = self.enter_omp()
-		self.db = Sybase.connect('SYB_JAC', user, password, 'devomp')
+		self.db = Sybase.connect('SYB_JAC', user, password, omp)
 		self.cursor = self.db.cursor()
 
 	def submit_tle(self, tle):
@@ -35,13 +38,13 @@ class TLE_OMP(object):
 		self.cursor.execute("SELECT target FROM ompobs WHERE coordstype=\"AUTO-TLE\"")
 		return [r[0] for r in self.cursor.fetchall()]
 
-	def place_tle_elements(self, tle):
+	def update_tle_ompobs(self, tle):
 		"""Places elements in omp."""
 		self.cursor.execute("""
 				UPDATE ompobs SET
-				el1=@el1 AND el2=@el2 AND el3=@el3 AND el4=@el4 AND
-				el5=@el5 AND el6=@el6 AND el7=@el7 AND el8=@el8
-				WHERE target=NORAD@target
+				el1=@el1, el2=@el2, el3=@el3, el4=@el4,
+				el5=@el5, el6=@el6, el7=@el7, el8=@el8
+				WHERE target=@target
 						   """,
 						   {
 						   	'@el1': tle["el1"],
@@ -58,17 +61,5 @@ class TLE_OMP(object):
 
 	def enter_omp(self):
 		"""Finds and enters correct data to get in db"""
-		flag = 0
-		user = ""
-		password = ""
-		with open("/jac_sw/etc/omp1site.cfg", 'r') as sfile:
-			for line in sfile:
-				if '[database]' in line:
-					flag = 1
-				elif flag == 1 and 'user' in line:
-					user = line.split('=')[1].strip()
-				elif flag == 1 and 'password' in line:
-					password = line.split('=')[1].strip()
-					flag = 0
-					break
-		return user, password
+		cfg = siteconfig.get_omp_siteconfig()
+		return cfg.get('database', 'user'), cfg.get('database', 'password')

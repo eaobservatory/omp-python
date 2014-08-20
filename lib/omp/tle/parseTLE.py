@@ -6,8 +6,9 @@ import datetime
 
 class TLEParser(object):
 	"""TLEParser"""
-	def __init__(self):
-		self.tle = {"NORAD": "",
+	def __init__(self, tletype="NORAD"):
+		self.tletype = tletype
+		self.tle = {tletype: "",
 					"Class": "",
 					"Intl Desig": "",
 					"Epoch": "",
@@ -35,7 +36,7 @@ class TLEParser(object):
 
 	def export_tle_omp(self, tle):
 		elements = {}
-		elements["target"] = tle["NORAD"]
+		elements["target"] = tle[self.tletype]
 		elements["el1"] = tle["Epoch"]
 		elements["el2"] = tle["Bstar"]
 		elements["el3"] = tle["Inclination"]
@@ -57,7 +58,7 @@ class TLEParser(object):
 
 	def parse_tle(self, line1, line2):
 		tle = self.tle.copy()
-		tle["NORAD"] = line1[2:7]
+		tle[self.tletype] = self.tletype + line1[2:7]
 		tle["Class"] = line1[7]
 		tle["Intl Desig"] = line1[9:17]
 		tle["Epoch"] = self.convert_epoch(line1[18:32])

@@ -1,14 +1,14 @@
 #!/local/python/bin/python2
 
-import omp.tle.spaceTracker
-import omp.tle.parseTLE
-import omp.tle.tle_omp
+import omp.tle.spaceTracker as spaceTracker
+import omp.tle.parseTLE as parseTLE
+import omp.tle.tle_omp as tle_omp
 
 import sys
 
 strack = spaceTracker.SpaceTrack()
-parse = parseTLE.TLEParser()
-omp = tle_omp.TLE_OMP()
+parse = parseTLE.TLEParser() #tletype="NORAD" as default
+omp = tle_omp.TLE_OMP(omp="omp") #should actually update omp tables.
 
 errors = []
 

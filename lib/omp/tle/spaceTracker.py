@@ -1,9 +1,14 @@
+"""Builds and checks ids, builds api request,
+   sends request and returns list of tles
+   """
+
 from requests import session
 
 
 class SpaceTrack(object):
     """space-track.org API"""
-    def __init__(self):
+    def __init__(self, tletype="NORAD"):
+        self.tletype = tletype
         self.id_list = []
         self.req_list = []
         self.rurl = ""

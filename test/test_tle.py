@@ -101,13 +101,13 @@ class TestTLEOMP(unittest.TestCase):
 	 	self.assertIsInstance(user, str)
 	 	self.assertIsInstance(password, str)
 
-	def test_submit_tle(self):
-		self.subomp.submit_tle({'target': 'NORAD25544', 'el8': 15.50427728,
-								 'el2': -0.000091404, 'el3': 0.9014136894360153,
-								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
-								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
-								 'el5': 0.0006361})
-		self.assertEqual(1,1)
+	# def test_submit_tle(self):
+	# 	self.subomp.submit_tle({'target': 'NORAD25544', 'el8': 15.50427728,
+	# 							 'el2': -0.000091404, 'el3': 0.9014136894360153,
+	# 							 'el1': 1406292189.682752, 'el6': 4.994399280921934,
+	# 							 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
+	# 							 'el5': 0.0006361})
+	# 	self.assertEqual(1,1)
 
 	def test_update_tle_ompobs(self):
 		self.assertEqual(1,1)

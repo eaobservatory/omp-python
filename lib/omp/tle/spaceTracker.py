@@ -2,6 +2,7 @@
    sends request and returns list of tles
    """
 
+import omp.siteconfig as siteconfig
 from requests import session
 
 
@@ -42,8 +43,9 @@ class SpaceTrack(object):
     def send_request(self):
         """Sends current request."""
         url = "https://www.space-track.org/ajaxauth/login"
-        user = "ukirtot@jach.hawaii.edu"
-        password = ""
+        cfg = siteconfig.get_omp_siteconfig()
+        user = cfg.get('spacetrack', 'user')
+        password = cfg.get('spacetrack', 'password')
         idpass = {'identity': user, 'password': password}
         with session() as ss:
             r = ss.post(url, data=idpass)

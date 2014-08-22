@@ -1,5 +1,6 @@
 """parseTLE.py"""
 
+from codecs import latin_1_encode
 import datetime
 import logging
 #from degrees to radians
@@ -66,7 +67,7 @@ class TLEParser(object):
 		if len(line1) < 62 or len(line2) < 69:
 			return None
 		tle = self.tle.copy()
-		tle[self.tletype] = self.tletype + line1[2:7]
+		tle[self.tletype] = self.tletype + latin_1_encode(line1[2:7])[0]
 		tle["Class"] = line1[7]
 		tle["Intl Desig"] = line1[9:17]
 		tle["Epoch"] = self.convert_epoch(line1[18:32])

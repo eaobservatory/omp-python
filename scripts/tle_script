@@ -40,6 +40,7 @@ line1 = ""
 line2 = ""
 flag = 0
 
+logger.info('Reading SpaceTrack response')
 for tle in tles.splitlines():
 	logger.debug('Got TLE line: {0}'.format(tle))
 
@@ -49,8 +50,13 @@ for tle in tles.splitlines():
 		if parsed is None:
 			continue
 		ex_tle = parse.export_tle_omp(parsed)
+
+		logger.debug('Submitting TLE to OMP omptle table')
 		omp.submit_tle(ex_tle)
+
+		logger.debug('Updating TLE in OMP ompobs table')
 		omp.update_tle_ompobs(ex_tle)
+
 		flag = 0
 	elif flag == 0:
 		line1 = tle

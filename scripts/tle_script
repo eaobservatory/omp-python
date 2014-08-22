@@ -49,8 +49,8 @@ for tle in tles.splitlines():
 		if parsed is None:
 			continue
 		ex_tle = parse.export_tle_omp(parsed)
-		submit.submit_tle(ex_tle)
-		submit.update_tle_ompobs(ex_tle)
+		omp.submit_tle(ex_tle)
+		omp.update_tle_ompobs(ex_tle)
 		flag = 0
 	elif flag == 0:
 		line1 = tle

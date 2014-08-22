@@ -68,6 +68,12 @@ class TestTLEParse(unittest.TestCase):
 		self.assertEqual(self.parse._parse_decimal_rhs(' 10000-0'), 0.1)
 		self.assertEqual(self.parse._parse_decimal_rhs(' 10000+1'), 1.0)
 		self.assertEqual(self.parse._parse_decimal_rhs(' 10000-1'), 0.01)
+		self.assertEqual(self.parse._parse_decimal_rhs('-00000+0'), -0.0)
+		self.assertEqual(self.parse._parse_decimal_rhs('-00000-0'), -0.0)
+		self.assertEqual(self.parse._parse_decimal_rhs('-10000+0'), -0.1)
+		self.assertEqual(self.parse._parse_decimal_rhs('-10000-0'), -0.1)
+		self.assertEqual(self.parse._parse_decimal_rhs('-10000+1'), -1.0)
+		self.assertEqual(self.parse._parse_decimal_rhs('-10000-1'), -0.01)
 
 	def test_print_parse(self):
 		"""print parse"""

@@ -36,7 +36,7 @@ class TLEParser(object):
 
 	def export_tle_omp(self, tle):
 		elements = {}
-		elements["target"] = tle[self.tletype]
+		elements["target"] = tle["NORAD"] #self.tletype]
 		elements["el1"] = tle["Epoch"]
 		elements["el2"] = tle["Bstar"]
 		elements["el3"] = tle["Inclination"]
@@ -57,6 +57,8 @@ class TLEParser(object):
 			return
 
 	def parse_tle(self, line1, line2):
+		if len(line1) < 62 or len(line2) < 69:
+			return None
 		tle = self.tle.copy()
 		tle[self.tletype] = self.tletype + line1[2:7]
 		tle["Class"] = line1[7]

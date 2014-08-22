@@ -47,6 +47,8 @@ class SpaceTrack(object):
         user = cfg.get('spacetrack', 'user')
         password = cfg.get('spacetrack', 'password')
         idpass = {'identity': user, 'password': password}
+        r = None
         with session() as ss:
             r = ss.post(url, data=idpass)
-        return ss.get(rurl)
+            r = ss.get(self.rurl)
+        return r.text

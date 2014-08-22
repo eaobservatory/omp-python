@@ -8,7 +8,7 @@ import sys
 
 strack = spaceTracker.SpaceTrack()
 parse = parseTLE.TLEParser() #tletype="NORAD" as default
-omp = tle_omp.TLE_OMP(omp="omp") #should actually update omp tables.
+omp = tle_omp.TLE_OMP(omp="devomp") #should actually update omp tables.
 
 errors = []
 
@@ -33,8 +33,11 @@ for tle in tles:
 	if flag == 1:
 		line2 = tle
 		parsed = parse.parse_tle(line1, line2)
-		ex_tle = parse.export_tle(parsed)
+		if parsed is None:
+			continue
+		ex_tle = parse.export_tle_omp(parsed)
 		submit.submit_tle(ex_tle)
+		submit.update_tle_ompobs(ex_tle)
 		flag = 0
 	elif flag == 0:
 		line1 = tle

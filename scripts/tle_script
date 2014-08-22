@@ -40,7 +40,7 @@ line1 = ""
 line2 = ""
 flag = 0
 
-for tle in tles:
+for tle in tles.splitlines():
 	logger.debug('Got TLE line: {0}'.format(tle))
 
 	if flag == 1:

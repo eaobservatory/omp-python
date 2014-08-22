@@ -61,6 +61,14 @@ class TestTLEParse(unittest.TestCase):
 	def tearDown(self):
 		self.parse = None
 
+	def test_parse_decimal_rhs(self):
+		self.assertEqual(self.parse._parse_decimal_rhs(' 00000+0'), 0.0)
+		self.assertEqual(self.parse._parse_decimal_rhs(' 00000-0'), 0.0)
+		self.assertEqual(self.parse._parse_decimal_rhs(' 10000+0'), 0.1)
+		self.assertEqual(self.parse._parse_decimal_rhs(' 10000-0'), 0.1)
+		self.assertEqual(self.parse._parse_decimal_rhs(' 10000+1'), 1.0)
+		self.assertEqual(self.parse._parse_decimal_rhs(' 10000-1'), 0.01)
+
 	def test_print_parse(self):
 		"""print parse"""
 		ans = self.parse.parse_tle("1 25544U 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",

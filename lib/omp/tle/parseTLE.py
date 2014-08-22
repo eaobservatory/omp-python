@@ -72,14 +72,13 @@ class TLEParser(object):
 		tle["Epoch"] = self.convert_epoch(line1[18:32])
 		tle["First D"] = line1[33:43]
 		tle["Second D"] = line1[44:52]
+
 		bstar = line1[53:61]
 		if bstar.find("-") == 0:
-			two_temp = bstar[1:].split("-")
-			bstar = float("-0." + int(two_temp[1])*"0" + two_temp[0])
+			tle["Bstar"] = -1.0 * self._parse_decimal_rhs(bstar[1:])
 		else:
-			two_temp = bstar.split("-")
-			bstar = float("0." + int(two_temp[1])*"0" + two_temp[0])
-		tle["Bstar"] = bstar
+			tle["Bstar"] = self._parse_decimal_rhs(bstar)
+
 		tle["ElSet Type"] = line1[62]
 		tle["Element Num"] = line1[64:68]
 		tle["Inclination"] = radians(float(line2[8:16]))
@@ -90,3 +89,16 @@ class TLEParser(object):
 		tle["Mean Motion"] = float(line2[52:63])
 		tle["Rev at Epoch"] = line2[63:68]
 		return tle
+
+	def _parse_decimal_rhs(self, decimal):
+		"""Routine to parse TLE-style right hand sides of
+		truncated decimals.  (i.e. the bit after the decimal
+		point)
+		"""
+
+		if '-' in decimal:
+			decimal = 'E-'.join(decimal.split('-'))
+		elif '+' in decimal:
+			decimal = 'E+'.join(decimal.split('+'))
+
+		return float('0.' + decimal.strip())

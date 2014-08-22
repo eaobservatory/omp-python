@@ -1,10 +1,15 @@
 #!/local/python/bin/python2
 
+import logging
+
 import omp.tle.spaceTracker as spaceTracker
 import omp.tle.parseTLE as parseTLE
 import omp.tle.tle_omp as tle_omp
 
 import sys
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('tle_script')
 
 strack = spaceTracker.SpaceTrack()
 parse = parseTLE.TLEParser() #tletype="NORAD" as default
@@ -12,17 +17,23 @@ omp = tle_omp.TLE_OMP(omp="devomp") #should actually update omp tables.
 
 errors = []
 
+logger.info('Fetching TLE IDs from OMP')
 ids = omp.retrieve_ids()
 
 for cat_id in ids:
 	if not cat_id.startswith("NORAD"):
+		logger.warning('Bad TLE ID {0}'.format(cat_id))
 		errors.append(cat_id)
 		continue
 	cat_id = cat_id[5:]
+
+	logger.debug('Adding to list NORAD TLE ID {0}'.format(cat_id))
 	strack.add_id(cat_id)
 
+logger.debug('Building SpaceTrack request')
 strack.build_request()
 
+logger.info('Sending SpaceTrack request')
 tles = strack.send_request()
 
 line1 = ""
@@ -30,6 +41,8 @@ line2 = ""
 flag = 0
 
 for tle in tles:
+	logger.debug('Got TLE line: {0}'.format(tle))
+
 	if flag == 1:
 		line2 = tle
 		parsed = parse.parse_tle(line1, line2)

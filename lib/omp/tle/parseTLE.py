@@ -1,8 +1,11 @@
 """parseTLE.py"""
 
+import datetime
+import logging
 #from degrees to radians
 from math import radians
-import datetime
+
+logger = logging.getLogger(__name__)
 
 class TLEParser(object):
 	"""TLEParser"""
@@ -57,6 +60,9 @@ class TLEParser(object):
 			return
 
 	def parse_tle(self, line1, line2):
+		logger.debug('Parsing TLE, line 1: {0}'.format(line1))
+		logger.debug('Parsing TLE, line 2: {0}'.format(line2))
+
 		if len(line1) < 62 or len(line2) < 69:
 			return None
 		tle = self.tle.copy()

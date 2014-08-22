@@ -1,5 +1,6 @@
 #!/local/python/bin/python2
 
+import argparse
 import logging
 
 import omp.tle.spaceTracker as spaceTracker
@@ -8,12 +9,32 @@ import omp.tle.tle_omp as tle_omp
 
 import sys
 
-logging.basicConfig(level=logging.DEBUG)
+parser = argparse.ArgumentParser(description="""
+Script to update AUTO-TLE coordinates in the OMP database.
+
+For each AUTO-TLE target name in the database, the current TLE is
+retrieved from space-track.org and stored in the omptle table.
+Then all the AUTO-TLE records in the ompobs table for this
+target are updated with the new element values.
+""")
+
+parser.add_argument(
+    '--verbose', '-v',
+    required=False, default=False, action='store_true',
+    help='Output debugging information')
+parser.add_argument(
+    '--dev',
+    required=False, default=False, action='store_true',
+    help='Use development test database (devomp)')
+
+args = parser.parse_args()
+
+logging.basicConfig(level=(logging.DEBUG if args.verbose else logging.INFO))
 logger = logging.getLogger('tle_script')
 
 strack = spaceTracker.SpaceTrack()
 parse = parseTLE.TLEParser() #tletype="NORAD" as default
-omp = tle_omp.TLE_OMP(omp="devomp") #should actually update omp tables.
+omp = tle_omp.TLE_OMP(omp=("devomp" if args.dev else 'omp'))
 
 errors = []
 

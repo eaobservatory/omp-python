@@ -49,7 +49,7 @@ class TLE_OMP(object):
 				UPDATE ompobs SET
 				el1=@el1, el2=@el2, el3=@el3, el4=@el4,
 				el5=@el5, el6=@el6, el7=@el7, el8=@el8
-				WHERE target=@target
+				WHERE coordstype="AUTO-TLE" AND target=@target
 						   """,
 						   {
 						   	'@el1': tle["el1"],

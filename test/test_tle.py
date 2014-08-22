@@ -51,7 +51,7 @@ class TestSpaceTrack(unittest.TestCase):
 		self.st.build_request()
 		_list.sort()
 		comma_str = ",".join([str(r) for r in _list])
-		self.assertNotEqual(self.st.rurl.find(comma_str), None)
+		self.assertEqual(self.st.rurl, "https://www.space-track.org/basicspacedata/query/class/tle/NORAD_CAT_ID/20,345,2401,4242,45034/orderby/EPOCH desc/limit/1/format/tle")
 
 
 class TestTLEParse(unittest.TestCase):
@@ -89,6 +89,7 @@ class TestTLEParse(unittest.TestCase):
 								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
 								 'el5': 0.0006361} )
 
+
 class TestTLEOMP(unittest.TestCase):
 	def setUp(self):
 		self.subomp = TLE_OMP(omp="devomp") #This is default but just setting it anyway.
@@ -101,13 +102,13 @@ class TestTLEOMP(unittest.TestCase):
 	 	self.assertIsInstance(user, str)
 	 	self.assertIsInstance(password, str)
 
-	# def test_submit_tle(self):
-	# 	self.subomp.submit_tle({'target': 'NORAD25544', 'el8': 15.50427728,
-	# 							 'el2': -0.000091404, 'el3': 0.9014136894360153,
-	# 							 'el1': 1406292189.682752, 'el6': 4.994399280921934,
-	# 							 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
-	# 							 'el5': 0.0006361})
-	# 	self.assertEqual(1,1)
+	def test_submit_tle(self):
+		self.subomp.submit_tle({'target': 'NORAD25544', 'el8': 15.50427728,
+								 'el2': -0.000091404, 'el3': 0.9014136894360153,
+								 'el1': 1406292189.682752, 'el6': 4.994399280921934,
+								 'el7': 3.6700225005576126, 'el4': 4.7042260754731124,
+								 'el5': 0.0006361})
+		self.assertEqual(1,1)
 
 	def test_update_tle_ompobs(self):
 		self.assertEqual(1,1)

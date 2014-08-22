@@ -14,6 +14,11 @@ class TLE_OMP(object):
 
 	def submit_tle(self, tle):
 		"""Takes tle and submits it into omp db"""
+		self.cursor.execute("DELETE FROM omptle WHERE target=@target",
+							{
+							 '@target':tle["target"]
+							}
+						   )
 		self.cursor.execute("""
 				INSERT INTO omptle
 				(target, el1, el2, el3, el4, el5, el6, el7, el8)
@@ -35,7 +40,7 @@ class TLE_OMP(object):
 
 	def retrieve_ids(self):
 		"""Finds all auto update tles"""
-		self.cursor.execute("SELECT target FROM ompobs WHERE coordstype=\"AUTO-TLE\"")
+		self.cursor.execute("SELECT DISTINCT target FROM ompobs WHERE coordstype=\"AUTO-TLE\"")
 		return [r[0] for r in self.cursor.fetchall()]
 
 	def update_tle_ompobs(self, tle):

@@ -37,8 +37,8 @@ class SpaceTrack(object):
         #comma separates
         temp_str = ",".join(temp_list)
         #Currently just what we need. But this could be parameterized.
-        self.rurl = ("https://www.space-track.org/basicspacedata/query/class/tle/NORAD_CAT_ID/" +
-                     temp_str + "/orderby/EPOCH desc/limit/1/format/tle")
+        self.rurl = ("https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/" +
+                     temp_str + "/orderby/EPOCH desc/format/tle")
 
     def send_request(self):
         """Sends current request."""

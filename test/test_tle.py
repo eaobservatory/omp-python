@@ -51,7 +51,7 @@ class TestSpaceTrack(unittest.TestCase):
 		self.st.build_request()
 		_list.sort()
 		comma_str = ",".join([str(r) for r in _list])
-		self.assertEqual(self.st.rurl, "https://www.space-track.org/basicspacedata/query/class/tle/NORAD_CAT_ID/20,345,2401,4242,45034/orderby/EPOCH desc/limit/1/format/tle")
+		self.assertEqual(self.st.rurl, "https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/20,345,2401,4242,45034/orderby/EPOCH desc/format/tle")
 
 
 class TestTLEParse(unittest.TestCase):

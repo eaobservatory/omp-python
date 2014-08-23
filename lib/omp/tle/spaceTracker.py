@@ -2,8 +2,13 @@
    sends request and returns list of tles
    """
 
-import omp.siteconfig as siteconfig
+import logging
 from requests import session
+from time import sleep
+
+import omp.siteconfig as siteconfig
+
+logger = logging.getLogger(__name__)
 
 
 class SpaceTrack(object):
@@ -11,6 +16,9 @@ class SpaceTrack(object):
     def __init__(self, tletype="NORAD"):
         self.tletype = tletype
         self.id_list = []
+
+        self.max_request = 20
+        self.request_delay = 5
 
     def add_id(self, catid):
         """Take NORAD Cat ID and adds it to the list."""
@@ -54,9 +62,19 @@ class SpaceTrack(object):
         password = cfg.get('spacetrack', 'password')
         idpass = {'identity': user, 'password': password}
         result = []
+        ids = self.id_list
         with session() as ss:
             r = ss.post(url, data=idpass)
-            r = ss.get(self._build_request(self.id_list))
-            result.extend(r.text.splitlines())
+
+            while ids:
+                r = ss.get(self._build_request(ids[0:self.max_request]))
+                result.extend(r.text.splitlines())
+
+                ids = ids[self.max_request:]
+                if ids:
+                    logger.debug(
+                        'Sleeping for %i seconds between space-track requests',
+                        self.request_delay)
+                    sleep(self.request_delay)
 
         return result

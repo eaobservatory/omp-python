@@ -26,6 +26,10 @@ parser.add_argument(
     '--dev',
     required=False, default=False, action='store_true',
     help='Use development test database (devomp)')
+parser.add_argument(
+    '--dry-run', '-n',
+    required=False, default=False, action='store_true',
+    help='Do not write the results into the database')
 
 args = parser.parse_args()
 
@@ -72,11 +76,16 @@ for tle in tles.splitlines():
 			continue
 		ex_tle = parse.export_tle_omp(parsed)
 
-		logger.debug('Submitting TLE to OMP omptle table')
-		omp.submit_tle(ex_tle)
+		if not args.dry_run:
+			logger.debug('Submitting TLE to OMP omptle table')
+			omp.submit_tle(ex_tle)
 
-		logger.debug('Updating TLE in OMP ompobs table')
-		omp.update_tle_ompobs(ex_tle)
+			logger.debug('Updating TLE in OMP ompobs table')
+			omp.update_tle_ompobs(ex_tle)
+
+		else:
+			logger.info('Not writing "%s" to the database [DRY RUN]',
+				    ex_tle['target'])
 
 		flag = 0
 	elif flag == 0:

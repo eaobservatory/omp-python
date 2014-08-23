@@ -55,9 +55,6 @@ for cat_id in ids:
 	logger.debug('Adding to list NORAD TLE ID {0}'.format(cat_id))
 	strack.add_id(cat_id)
 
-logger.debug('Building SpaceTrack request')
-strack.build_request()
-
 logger.info('Sending SpaceTrack request')
 tles = strack.send_request()
 
@@ -66,7 +63,7 @@ line2 = ""
 flag = 0
 
 logger.info('Reading SpaceTrack response')
-for tle in tles.splitlines():
+for tle in tles:
 	logger.debug('Got TLE line: {0}'.format(tle))
 
 	if flag == 1:

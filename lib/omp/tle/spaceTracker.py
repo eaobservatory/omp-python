@@ -11,8 +11,6 @@ class SpaceTrack(object):
     def __init__(self, tletype="NORAD"):
         self.tletype = tletype
         self.id_list = []
-        self.req_list = []
-        self.rurl = ""
 
     def add_id(self, catid):
         """Take NORAD Cat ID and adds it to the list."""
@@ -27,28 +25,38 @@ class SpaceTrack(object):
             return
         self.id_list.append(catid)
 
-    def build_request(self):
-        """Builds a request"""
+    def _build_request(self, ids):
+        """Build a request URL.
+
+        Returns the request URL as a string.
+        """
+
         #Turns all ids into integers to strip spurious preceding 0's
-        temp_set = set([int(r) for r in self.id_list])
+        temp_set = set([int(r) for r in ids])
         #Sort back into a list.
         temp_list = sorted(list(temp_set))
         temp_list = [str(r) for r in temp_list]
         #comma separates
         temp_str = ",".join(temp_list)
         #Currently just what we need. But this could be parameterized.
-        self.rurl = ("https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/" +
+        return ("https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/" +
                      temp_str + "/orderby/EPOCH desc/format/tle")
 
     def send_request(self):
-        """Sends current request."""
+        """Send current request.
+
+        Returns a list of lines.
+        """
+
         url = "https://www.space-track.org/ajaxauth/login"
         cfg = siteconfig.get_omp_siteconfig()
         user = cfg.get('spacetrack', 'user')
         password = cfg.get('spacetrack', 'password')
         idpass = {'identity': user, 'password': password}
-        r = None
+        result = []
         with session() as ss:
             r = ss.post(url, data=idpass)
-            r = ss.get(self.rurl)
-        return r.text
+            r = ss.get(self._build_request(self.id_list))
+            result.extend(r.text.splitlines())
+
+        return result

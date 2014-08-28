@@ -1,3 +1,17 @@
+# Copyright (C) 2014 Science and Technology Facilities Council.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #test-tle.py
 import unittest
 import random
@@ -76,7 +90,7 @@ class TestTLEParse(unittest.TestCase):
 		self.assertEqual(self.parse._parse_decimal_rhs('-10000+1'), -1.0)
 		self.assertEqual(self.parse._parse_decimal_rhs('-10000-1'), -0.01)
 
-	def test_print_parse(self):
+	def test_parse_tle(self):
 		"""print parse"""
 		ans = self.parse.parse_tle("1 25544U 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",
 							 "2 25544 051.6472 269.5323 0006361 286.1580 210.2768 15.50427728897273")

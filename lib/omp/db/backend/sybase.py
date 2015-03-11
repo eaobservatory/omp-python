@@ -25,9 +25,16 @@ class OMPSybaseLock:
     """Sybase lock and cursor management class.
     """
 
-    def __init__(self, server, user, password):
-        """Construct object."""
+    def __init__(self, server, user, password, read_only=False):
+        """Construct object.
 
+        Enabling the read_only option provides some limited protection
+        against accidentally writing to the database.  (It prevents
+        the transaction method being called with read_write enabled.)
+        There doesn't seem to be a way of doing this with DBAPI itself.
+        """
+
+        self._read_only = read_only
         self._lock = Lock()
         self._conn = Sybase.connect(
             server,
@@ -46,6 +53,10 @@ class OMPSybaseLock:
         Otherwise the cursor will be patched to try to catch some accidental
         attempts to peform queries other than selects.
         """
+
+        if read_write and self._read_only:
+            raise OMPDBError(
+                'attempt to open read_write transaction on read_only object')
 
         cursor = None
         success = False

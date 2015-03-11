@@ -23,11 +23,15 @@ class OMPSybaseLock:
     """Sybase lock and cursor management class.
     """
 
-    def __init__(self, conn):
+    def __init__(self, server, user, password):
         """Construct object."""
 
         self._lock = Lock()
-        self._conn = conn
+        self._conn = Sybase.connect(
+            server,
+            user,
+            password,
+            auto_commit=0)
 
     def __enter__(self):
         """Context manager block entry method.

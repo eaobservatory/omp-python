@@ -19,7 +19,6 @@ from collections import namedtuple
 from datetime import datetime
 from keyword import iskeyword
 
-import Sybase
 from pytz import UTC
 
 from omp.db.backend.sybase import OMPSybaseLock
@@ -32,20 +31,14 @@ class OMPDB:
 
     CommonInfo = None
 
-    def __init__(self, server, user, password):
+    def __init__(self, **kwargs):
         """Construct new OMP and JCMT database object.
 
         Connects to the JAC Sybase server.
 
         """
 
-        conn = Sybase.connect(
-            server,
-            user,
-            password,
-            auto_commit=0)
-
-        self.db = OMPSybaseLock(conn)
+        self.db = OMPSybaseLock(**kwargs)
 
     def get_obsid_common(self, obsid):
         """Retrieve information for a given obsid from the COMMON table.

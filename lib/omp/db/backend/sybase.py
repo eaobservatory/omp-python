@@ -14,7 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import Sybase
+from contextlib import contextmanager
 from threading import Lock
+from types import MethodType
 
 from omp.error import OMPDBError
 
@@ -33,48 +35,85 @@ class OMPSybaseLock:
             password,
             auto_commit=0)
 
-    def __enter__(self):
-        """Context manager block entry method.
+    @contextmanager
+    def transaction(self, read_write=False):
+        """Context manager for database transactions.
 
         Acquires the lock and provides a cursor.
+
+        If the "read_write" parameter is given, then a commit or rollback
+        will be performed depending on whether an error occurs or not.
+        Otherwise the cursor will be patched to try to catch some accidental
+        attempts to peform queries other than selects.
         """
 
-        self._lock.acquire(True)
-        self._cursor = self._conn.cursor()
-        return self._cursor
-
-    def __exit__(self, type_, value, tb):
-        """Context manager  block exit method.
-
-        Closes the cursor and releases the lock.  Since this module
-        is intended for read access only, it does not attempt to
-        commit a transaction.
-        """
-
-        # If we got a database-specific error, re-raise it as our
-        # generic error.  Let other exceptions through unchanged.
-        # Sybase appears to need us to read the error before
-        # closing the cursor?
-        new_exc = None
-        if type_ is None:
-            pass
-        elif issubclass(type_, Sybase.Error):
-            new_exc = OMPDBError(str(value))
+        cursor = None
+        success = False
 
         try:
-            self._cursor.close()
-            del self._cursor
-        except Exception as e:
-            # Ignore errors trying to close the cursor if we are
-            # handling an exception, because Sybase can get into
-            # a state where we can't close it!
-            if type_ is None:
-                new_exc = OMPDBError('Failed to close cursor: ' + str(e))
+            self._lock.acquire(True)
 
-        self._lock.release()
+            cursor = self._conn.cursor()
 
-        if new_exc is not None:
-            raise new_exc
+            if not read_write:
+                # Patch the cursor object so that its execute method checks
+                # that the query starts with "SELECT".  This isn't very
+                # elegant but there doesn't seem to be an obvious way in
+                # which to get a read-only connection or cursor.
+
+                orig_exec = cursor.execute
+
+                def read_only_wrapper(that, query, *args):
+                    if not query.upper().startswith('SELECT'):
+                        raise OMPDBError(
+                            'non-select query in read-only transaction')
+
+                    return orig_exec(query, *args)
+
+                cursor.execute = MethodType(read_only_wrapper, cursor)
+
+            yield cursor
+
+            if read_write:
+                self._conn.commit()
+
+        except Sybase.Error as e:
+            # If we got a database-specific error, re-raise it as our
+            # generic error.  Let other exceptions through unchanged.
+            # Sybase appears to need us to read the error before
+            # closing the cursor?
+
+            if read_write:
+                self._conn.rollback()
+
+            raise OMPDBError(str(e))
+
+        except:
+            # Also rollback in the case any other error, but then re-raise
+            # the exception unchanged.
+
+            if read_write:
+                self._conn.rollback()
+
+            raise
+
+        else:
+            success = True
+
+        finally:
+            if cursor is not None:
+                try:
+                    cursor.close()
+
+                except Exception as e:
+                    # Ignore errors trying to close the cursor if we are
+                    # handling an exception, because Sybase can get into
+                    # a state where we can't close it!
+
+                    if success:
+                        raise OMPDBError('Failed to close cursor: ' + str(e))
+
+            self._lock.release()
 
     def close(self):
         """Close the database connection."""

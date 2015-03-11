@@ -44,12 +44,10 @@ class OMPDB:
         """Retrieve information for a given obsid from the COMMON table.
         """
 
-        query = 'SELECT * FROM COMMON WHERE obsid=@o'
-        args = {'@o': obsid}
-
-        with self.db as c:
-            c.execute('USE jcmt')
-            c.execute(query, args)
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT * FROM jcmt..COMMON WHERE obsid=@o',
+                {'@o': obsid})
 
             rows = c.fetchall()
             cols = c.description
@@ -74,15 +72,13 @@ class OMPDB:
         Returns None if no status was found.
         """
 
-        query = 'SELECT commentstatus FROM ompobslog ' \
-                'WHERE obslogid = ' \
-                '(SELECT MAX(obslogid) FROM ompobslog ' \
-                'WHERE obsid=@o AND obsactive=1)'
-        args = {'@o': obsid}
-
-        with self.db as c:
-            c.execute('USE omp')
-            c.execute(query, args)
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT commentstatus FROM omp..ompobslog '
+                'WHERE obslogid = '
+                '(SELECT MAX(obslogid) FROM omp..ompobslog '
+                'WHERE obsid=@o AND obsactive=1)',
+                {'@o': obsid})
 
             rows = c.fetchall()
 
@@ -147,21 +143,21 @@ class OMPDB:
         else:
             where.append('((last_caom_mod IS NULL)'
                             ' OR (last_caom_mod < (SELECT MAX(commentdate)'
-                                ' FROM omp..ompobslog'
-                                ' WHERE omp..ompobslog.obsid=COMMON.obsid)))')
+                                ' FROM omp..ompobslog AS o'
+                                ' WHERE o.obsid=c.obsid)))')
 
         # Check that all files have been transferred.
-        where.append('(SELECT COUNT(*) FROM FILES'
-                        ' JOIN transfer ON FILES.file_id=transfer.file_id'
-                        ' WHERE FILES.obsid=COMMON.obsid'
-                            ' AND transfer.status NOT IN ("t", "d", "D", "z"))'
+        where.append('(SELECT COUNT(*) FROM jcmt..FILES AS f'
+                        ' JOIN jcmt..transfer AS t'
+                        ' ON f.file_id=t.file_id'
+                        ' WHERE f.obsid=c.obsid'
+                            ' AND t.status NOT IN ("t", "d", "D", "z"))'
                         ' = 0')
 
-        query = 'SELECT obsid FROM COMMON WHERE ' + ' AND '.join(where)
+        query = 'SELECT obsid FROM jcmt..COMMON AS c WHERE ' + ' AND '.join(where)
         result = []
 
-        with self.db as c:
-            c.execute('use jcmt')
+        with self.db.transaction() as c:
             c.execute(query, args)
 
             while True:
@@ -184,29 +180,18 @@ class OMPDB:
         than being set to the current date and time.
         """
 
-        query = 'UPDATE COMMON SET last_caom_mod = ' + \
+        query = 'UPDATE jcmt..COMMON SET last_caom_mod = ' + \
             ('NULL' if set_null else 'GETUTCDATE()') + \
             ' WHERE obsid=@o'
         args = {'@o': obsid}
 
-        with self.db as c:
-            try:
-                c.execute('USE jcmt')
-                c.execute(query, args)
+        with self.db.transaction(read_write=True) as c:
+            c.execute(query, args)
 
-                # Check that exactly one row was updated.
-                # TODO: reinstate this check if/when we migrate to a
-                # database where rowcount works.
-                # if c.rowcount == 0:
-                #     raise NoRowsError('COMMON', query, args)
-                # elif c.rowcount > 1:
-                #     raise ExcessRowsError('COMMON', query, args)
-
-                # The Sybase DB lock object (JSAProcSybaseLock) was designed
-                # for read-only access.  Since this is the only case (so far)
-                # where we need to write to the database, handle commit and
-                # rollback explicitly here for now.
-                self.db._conn.commit()
-            except:
-                self.db._conn.rollback()
-                raise
+            # Check that exactly one row was updated.
+            # TODO: reinstate this check if/when we migrate to a
+            # database where rowcount works.
+            # if c.rowcount == 0:
+            #     raise NoRowsError('COMMON', query, args)
+            # elif c.rowcount > 1:
+            #     raise ExcessRowsError('COMMON', query, args)

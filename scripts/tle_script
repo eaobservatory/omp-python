@@ -18,7 +18,7 @@ import argparse
 import logging
 
 import omp.tle.spaceTracker as spaceTracker
-import omp.tle.parseTLE as parseTLE
+from omp.tle.parse import TLEParser
 import omp.tle.tle_omp as tle_omp
 
 import sys
@@ -51,7 +51,7 @@ logging.basicConfig(level=(logging.DEBUG if args.verbose else logging.INFO))
 logger = logging.getLogger('tle_script')
 
 strack = spaceTracker.SpaceTrack()
-parse = parseTLE.TLEParser() #tletype="NORAD" as default
+parse = TLEParser() #tletype="NORAD" as default
 omp = tle_omp.TLE_OMP(omp=("devomp" if args.dev else 'omp'))
 
 errors = []

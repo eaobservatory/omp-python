@@ -17,7 +17,7 @@ import unittest
 import random
 import time
 import omp.tle.spaceTracker as spaceTracker
-import omp.tle.parseTLE as parseTLE
+from omp.tle.parse import TLEParser
 from omp.tle.tle_omp import TLE_OMP
 
 
@@ -71,7 +71,7 @@ class TestSpaceTrack(unittest.TestCase):
 
 class TestTLEParse(unittest.TestCase):
 	def setUp(self):
-		self.parse = parseTLE.TLEParser()
+		self.parse = TLEParser()
 
 	def tearDown(self):
 		self.parse = None

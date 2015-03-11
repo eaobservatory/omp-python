@@ -18,7 +18,7 @@ import random
 import time
 from omp.tle.space_track import SpaceTrack
 from omp.tle.parse import TLEParser
-from omp.db.part.tle import TLE_OMP
+from omp.db.part.tle import TLEDB
 
 
 class TestSpaceTrack(unittest.TestCase):
@@ -121,7 +121,7 @@ class TestTLEParse(unittest.TestCase):
 
 class TestTLEOMP(unittest.TestCase):
 	def setUp(self):
-		self.subomp = TLE_OMP(omp="devomp") #This is default but just setting it anyway.
+		self.subomp = TLEDB(omp="devomp") #This is default but just setting it anyway.
 
 	def tearDown(self):
 		self.subomp = None

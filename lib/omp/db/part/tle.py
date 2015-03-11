@@ -22,7 +22,7 @@ import omp.siteconfig as siteconfig
 logger = logging.getLogger(__name__)
 
 
-class TLE_OMP(object):
+class TLEDB(object):
 	"""Opens connection to omp database and allows tles to be submitted.
 	   Defaults to devomp
 	"""

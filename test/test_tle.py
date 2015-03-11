@@ -16,14 +16,14 @@
 import unittest
 import random
 import time
-import omp.tle.spaceTracker as spaceTracker
+from omp.tle.space_track import SpaceTrack
 from omp.tle.parse import TLEParser
 from omp.tle.tle_omp import TLE_OMP
 
 
 class TestSpaceTrack(unittest.TestCase):
 	def setUp(self):
-		self.st = spaceTracker.SpaceTrack()
+		self.st = SpaceTrack()
 
 	def tearDown(self):
 		self.st = None

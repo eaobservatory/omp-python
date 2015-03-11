@@ -18,7 +18,7 @@ import random
 import time
 from omp.tle.space_track import SpaceTrack
 from omp.tle.parse import TLEParser
-from omp.tle.tle_omp import TLE_OMP
+from omp.db.part.tle import TLE_OMP
 
 
 class TestSpaceTrack(unittest.TestCase):

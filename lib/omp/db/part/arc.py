@@ -65,3 +65,31 @@ class ArcDB(OMPDB):
         """
 
         pass
+
+    def get_project_pi_title(self, project_id):
+        """
+        Retrieve the PI name and project title for the given project.
+
+        Returns a (project_pi, project_title) tuple, of which one or both
+        elements may be None if the project as a whole, or the PI name,
+        could not be found.
+        """
+
+        project_pi = None
+        project_title = None
+
+        sqlcmd = '\n'.join([
+            'SELECT ',
+            '    ou.uname,',
+            '    op.title',
+            'FROM omp..ompproj op',
+            '    LEFT JOIN omp..ompuser ou'
+            '        ON op.pi=ou.userid AND ou.obfuscated=0',
+            'WHERE op.projectid="%s"' % (project_id,)])
+        answer = self.read(sqlcmd)
+
+        if len(answer):
+            project_pi = answer[0][0]
+            project_title = answer[0][1]
+
+        return (project_pi, project_title)

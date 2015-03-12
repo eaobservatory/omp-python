@@ -13,11 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from contextlib import closing
 import logging
-import Sybase
 
-import omp.siteconfig as siteconfig
+from omp.siteconfig import get_omp_siteconfig
+from omp.db.backend.sybase import OMPSybaseLock
 
 logger = logging.getLogger(__name__)
 
@@ -26,17 +25,23 @@ class TLEDB(object):
     """Opens connection to omp database and allows tles to be submitted.
        Defaults to devomp
     """
-    def __init__(self, omp="devomp"):
-        user, password = self.enter_omp()
-        logger.debug('Connecting to OMP, user:%s database:%s',
-                     user, omp)
-        self.db = Sybase.connect('SYB_JAC', user, password, omp)
+    def __init__(self, **kwargs):
+        cfg = get_omp_siteconfig()
+        user = cfg.get('database', 'user')
+        password = cfg.get('database', 'password')
+
+        logger.debug('Connecting to OMP, user:%s', user)
+        self.db = OMPSybaseLock(
+            server='SYB_JAC',
+            user=user,
+            password=password,
+            **kwargs)
 
     def submit_tle(self, tle):
         """Takes tle and submits it into omp db"""
-        with closing(self.db.cursor()) as cursor:
+        with self.db.transaction(read_write=True) as cursor:
             logger.debug('Deleting old omptle row for "%s"', tle['target'])
-            cursor.execute("DELETE FROM omptle WHERE target=@target",
+            cursor.execute("DELETE FROM omp..omptle WHERE target=@target",
                            {
                                '@target': tle["target"]
                            }
@@ -44,7 +49,7 @@ class TLEDB(object):
 
             logger.debug('Inserting new omptle row: %s', repr(tle))
             cursor.execute("""
-                            INSERT INTO omptle
+                            INSERT INTO omp..omptle
                             (target, el1, el2, el3, el4, el5, el6, el7, el8)
                             VALUES
                             (@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8)
@@ -61,14 +66,11 @@ class TLEDB(object):
                                '@el8': tle["el8"]
                            })
 
-        logger.debug('Committing transaction')
-        self.db.commit()
-
     def retrieve_ids(self):
         """Finds all auto update tles"""
-        with closing(self.db.cursor()) as cursor:
+        with self.db.transaction() as cursor:
             logger.debug('Retrieving list of distinct AUTO-TLE targets from ompobs')
-            cursor.execute("SELECT DISTINCT target FROM ompobs WHERE coordstype=\"AUTO-TLE\"")
+            cursor.execute("SELECT DISTINCT target FROM omp..ompobs WHERE coordstype=\"AUTO-TLE\"")
             rows = cursor.fetchall()
 
         return [r[0] for r in rows]
@@ -76,10 +78,10 @@ class TLEDB(object):
     def update_tle_ompobs(self, tle):
         """Places elements in omp."""
 
-        with closing(self.db.cursor()) as cursor:
+        with self.db.transaction(read_write=True) as cursor:
             logger.debug('Updating ompobs with: %s', repr(tle))
             cursor.execute("""
-                            UPDATE ompobs SET
+                            UPDATE omp..ompobs SET
                             el1=@el1, el2=@el2, el3=@el3, el4=@el4,
                             el5=@el5, el6=@el6, el7=@el7, el8=@el8
                             WHERE coordstype="AUTO-TLE" AND target=@target
@@ -95,11 +97,3 @@ class TLEDB(object):
                                '@el8': tle["el8"],
                                '@target': tle["target"]
                            })
-
-        logger.debug('Committing transaction')
-        self.db.commit()
-
-    def enter_omp(self):
-        """Finds and enters correct data to get in db"""
-        cfg = siteconfig.get_omp_siteconfig()
-        return cfg.get('database', 'user'), cfg.get('database', 'password')

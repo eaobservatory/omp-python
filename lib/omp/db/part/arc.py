@@ -196,3 +196,53 @@ class ArcDB(OMPDB):
         logger.info(repr(rowlist))
 
         return rowlist
+
+    def check_obsid(self, obsid):
+        """
+        Query the number of rows in COMMON matching obsid to check that
+        the observation actually exists.
+
+        Arguments:
+        <None>
+
+        Returns:
+        1 if the observation exists in COMMON else 0
+        """
+        sqlcmd = '\n'.join(['SELECT',
+                            '    count(obsid)',
+                            'FROM ' + self.jcmt_db + 'COMMON',
+                            'WHERE',
+                            '    obsid = "%s"' % (obsid,)])
+        count = self.read(sqlcmd)[0][0]
+        logger.debug('query complete')
+        return count
+
+    def get_files(self, obsid):
+        """
+        Get the list of files in this observations, grouped obsid_subsysnr
+        and sorted alphabetically.
+
+        Arguments:
+        obsid: the observation identifier for the observation
+        """
+        sqlcmd = '\n'.join([
+            'SELECT ',
+            '    obsid_subsysnr,',
+            '    file_id',
+            'FROM ' + self.jcmt_db + 'FILES',
+            'WHERE obsid="%s"' % (obsid,),
+            'ORDER BY obsid_subsysnr, file_id'])
+        answer = self.read(sqlcmd)
+        logger.debug('query complete')
+
+        results = {}
+        if len(answer):
+            for i in range(len(answer)):
+                obsid_subsysnr = answer[i][0]
+                if obsid_subsysnr not in results:
+                    results[obsid_subsysnr] = []
+                results[obsid_subsysnr].append(answer[i][1])
+        else:
+            return None
+
+        return results

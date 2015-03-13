@@ -197,26 +197,6 @@ class ArcDB(OMPDB):
 
         return rowlist
 
-    def check_obsid(self, obsid):
-        """
-        Query the number of rows in COMMON matching obsid to check that
-        the observation actually exists.
-
-        Arguments:
-        <None>
-
-        Returns:
-        1 if the observation exists in COMMON else 0
-        """
-        sqlcmd = '\n'.join(['SELECT',
-                            '    count(obsid)',
-                            'FROM ' + self.jcmt_db + 'COMMON',
-                            'WHERE',
-                            '    obsid = "%s"' % (obsid,)])
-        count = self.read(sqlcmd)[0][0]
-        logger.debug('query complete')
-        return count
-
     def get_files(self, obsid):
         """
         Get the list of files in this observations, grouped obsid_subsysnr

@@ -27,6 +27,9 @@ class ArcDB(OMPDB):
             password=config.get('hdr_database', 'password'),
             read_only=True)
 
+        self.jcmt_db = 'jcmt..'
+        self.omp_db = 'omp..'
+
     def read(self, query, params={}):
         """
         Run an sql query, multiple times if necessary, using read_connection.
@@ -93,3 +96,103 @@ class ArcDB(OMPDB):
             project_title = answer[0][1]
 
         return (project_pi, project_title)
+
+    # Fields to extract from various tables in the query_table method.
+    query_table_columns = {
+        'COMMON': (
+            'atstart',
+            'backend',
+            'date_end',
+            'date_obs',
+            'elstart',
+            'humstart',
+            'inbeam',
+            'instrume',
+            'object',
+            'obsdec',
+            'obsdecbl',
+            'obsdecbr',
+            'obsdectl',
+            'obsdectr',
+            'obsid',
+            'obsgeo_x',
+            'obsgeo_y',
+            'obsgeo_z',
+            'obsnum',
+            'obsra',
+            'obsrabl',
+            'obsrabr',
+            'obsratl',
+            'obsratr',
+            'obs_type',
+            'project',
+            'release_date',
+            'sam_mode',
+            'scan_pat',
+            'seeingst',
+            'standard',
+            'survey',
+            'sw_mode',
+            'tau225st',
+        ),
+
+        'ACSIS': (
+            'bwmode',
+            'freq_sig_lower',
+            'freq_sig_upper',
+            'freq_img_lower',
+            'freq_img_upper',
+            'ifchansp',
+            'obsid_subsysnr',
+            'molecule',
+            'obs_sb',
+            'restfreq',
+            'iffreq',
+            'ifchansp',
+            'sb_mode',
+            'ssysobs',
+            'ssyssrc',
+            'subsysnr',
+            'transiti',
+            'zsource',
+        ),
+
+        'SCUBA2': (
+            'obsid_subsysnr',
+            'filter',
+            'wavelen',
+            'bandwid',
+        )}
+
+    def query_table(self, table, obsid):
+        """
+        Query a specified table for a set of columns.
+
+        Arguments:
+        table      the name of the table to query
+        obsid      obsid to search for
+
+        Returns:
+        A list of dictionaries keyed on the column_name.
+        If a value is null, a default value will be returned in its place
+        that depends upon the data_type.
+        """
+        columns = self.query_table_columns[table]
+        selection = ',\n'.join(['    ' + key
+                                for key in columns])
+        sqlcmd = '\n'.join(['SELECT',
+                            '%s' % (selection,),
+                            'FROM ' + self.jcmt_db + table,
+                            'WHERE obsid = "%s"' % (obsid,)])
+
+        answer = self.read(sqlcmd)
+        logger.debug('query complete')
+        rowlist = []
+        for row in answer:
+            rowdict = {}
+            for key, value in zip(columns, row):
+                rowdict[key] = value
+            rowlist.append(rowdict)
+        logger.info(repr(rowlist))
+
+        return rowlist

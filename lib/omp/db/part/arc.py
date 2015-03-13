@@ -246,3 +246,45 @@ class ArcDB(OMPDB):
             return None
 
         return results
+
+    def get_heterodyne_product_info(self, backend, obsid):
+        """
+        Retrive the information required to derive the product ID for
+        heterodyne observations.
+
+        Returns a list of (subsysnr, restfreq, bwmode, specid, hybrid) results.
+        """
+
+        if backend == 'ACSIS':
+            sqlcmd = '\n'.join([
+                     'SELECT a.subsysnr,',
+                     '       min(a.restfreq),',
+                     '       min(a.bwmode),',
+                     '       min(aa.subsysnr),',
+                     '       count(aa.subsysnr)',
+                     'FROM ' + self.jcmt_db + 'ACSIS a',
+                     '    INNER JOIN ' + self.jcmt_db + 'ACSIS aa',
+                     '        ON a.obsid=aa.obsid',
+                     '        AND a.restfreq=aa.restfreq',
+                     '        AND a.iffreq=aa.iffreq',
+                     '        AND a.ifchansp=aa.ifchansp',
+                     'WHERE a.obsid = "%s"' % (obsid,),
+                     'GROUP BY a.subsysnr'])
+
+        elif backend in ['DAS', 'AOS-C']:
+            sqlcmd = '\n'.join([
+                     'SELECT a.subsysnr,',
+                     '       a.restfreq,',
+                     '       a.bwmode,',
+                     '       a.specid,',
+                     '       count(aa.subsysnr)',
+                     'FROM ' + self.jcmt_db + 'ACSIS a',
+                     '    INNER JOIN ' + self.jcmt_db + 'ACSIS aa',
+                     '        ON a.obsid=aa.obsid',
+                     '        AND a.specid=aa.specid',
+                     'WHERE a.obsid = "%s"' % (obsid,),
+                     'GROUP BY a.subsysnr, a.restfreq, a.bwmode, a.specid'])
+        else:
+            raise Exception('backend = ' + backend + ' is not supported')
+
+        return self.read(sqlcmd)

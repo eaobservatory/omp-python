@@ -40,6 +40,7 @@ class OMPSybaseLock:
             server,
             user,
             password,
+            datetime='python',
             auto_commit=0)
 
     @contextmanager

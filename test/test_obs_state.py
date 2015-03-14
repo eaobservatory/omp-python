@@ -24,3 +24,13 @@ class TestState(TestCase):
         self.assertTrue(OMPState.is_valid(0))
         self.assertTrue(OMPState.is_valid(4))
         self.assertFalse(OMPState.is_valid(5))
+
+    def test_caom_info(self):
+        self.assertFalse(OMPState.is_caom_fail(OMPState.GOOD))
+        self.assertFalse(OMPState.is_caom_junk(OMPState.GOOD))
+
+        self.assertTrue(OMPState.is_caom_fail(OMPState.BAD))
+        self.assertFalse(OMPState.is_caom_junk(OMPState.BAD))
+
+        self.assertTrue(OMPState.is_caom_fail(OMPState.JUNK))
+        self.assertTrue(OMPState.is_caom_junk(OMPState.JUNK))

@@ -17,6 +17,12 @@ from collections import namedtuple, OrderedDict
 
 from omp.error import OMPError
 
+# Information about each state:
+#     name: Human-readable name
+#     caom_fail: should be marked as fail status in CAOM-2
+#     caom_junk: should be marked as junk quality in CAOM-2
+OMPStateInfo = namedtuple('OMPStateInfo', ('name', 'caom_fail', 'caom_junk'))
+
 
 class OMPState:
     """Class for handling OMP observation states.
@@ -28,12 +34,13 @@ class OMPState:
     REJECTED = 3
     JUNK = 4
 
-    _info = OrderedDict()
-    _info[GOOD] = 'Good'
-    _info[QUESTIONABLE] = 'Questionable'
-    _info[BAD] = 'Bad'
-    _info[REJECTED] = 'Rejected'
-    _info[JUNK] = 'Junk'
+    _info = OrderedDict((
+        (GOOD,         OMPStateInfo('Good',        False, False)),
+        (QUESTIONABLE, OMPStateInfo('Questionable',True,  False)),
+        (BAD,          OMPStateInfo('Bad',         True,  False)),
+        (REJECTED,     OMPStateInfo('Rejected',    False, False)),
+        (JUNK,         OMPStateInfo('Junk',        True,  True)),
+    ))
 
     STATE_ALL = tuple(_info.keys())
     STATE_NO_COADD = set((JUNK, BAD))
@@ -47,7 +54,7 @@ class OMPState:
         """
 
         try:
-            return cls._info[state]
+            return cls._info[state].name
         except KeyError:
             raise OMPError('Unknown OMP state code {0}'.format(state))
 
@@ -60,3 +67,25 @@ class OMPState:
         """
 
         return state in cls._info
+
+    @classmethod
+    def is_caom_fail(cls, state):
+        """
+        Return whether the state should be marked as a failure in CAOM-2.
+        """
+
+        try:
+            return cls._info[state].caom_fail
+        except KeyError:
+            raise OMPError('Unknown OMP state code {0}'.format(state))
+
+    @classmethod
+    def is_caom_junk(cls, state):
+        """
+        Return whether or not the state should be marked junk in CAOM-2.
+        """
+
+        try:
+            return cls._info[state].caom_junk
+        except KeyError:
+            raise OMPError('Unknown OMP state code {0}'.format(state))

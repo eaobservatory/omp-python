@@ -90,13 +90,6 @@ class OMPDB:
 
         return rows[0][0]
 
-    def parse_datetime(self, dt):
-        """Parse a datetime value returned by Sybase and return a
-        datetime object.
-        """
-
-        return UTC.localize(datetime.strptime(str(dt), '%b %d %Y %I:%M%p'))
-
     def find_obs_for_ingestion(self, utdate_start, utdate_end=None,
                                no_status_check=False):
         """Find (raw) observations which are due for ingestion into CAOM-2.

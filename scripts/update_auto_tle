@@ -52,7 +52,7 @@ if args.dev:
     sys.exit(1)
 
 logging.basicConfig(level=(logging.DEBUG if args.verbose else logging.INFO))
-logger = logging.getLogger('tle_script')
+logger = logging.getLogger('update_auto_tle')
 
 strack = SpaceTrack()
 parse = TLEParser() #tletype="NORAD" as default

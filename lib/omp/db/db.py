@@ -98,7 +98,8 @@ class OMPDB:
 
             1. utdate within the given range
             2. date_obs at least 4 hours ago
-            3. last_caom_mod NULL or older than last comment
+            3. last_caom_mod NULL, older than last_modified or older than
+               last comment
             4. no files still in the process of being transferred
 
         Arguments:
@@ -130,10 +131,11 @@ class OMPDB:
         # Check the observation is finished.  (Started >= 4 hours ago.)
         where.append('(DATEDIFF(hh, date_obs, GETUTCDATE()) >= 4)')
 
-        # Look for last_caom_mod NULL or (optionally) comment newer than
-        # last_caom_mod.
+        # Look for last_caom_mod NULL, older than last_modified
+        # or (optionally) comment newer than last_caom_mod.
         status_condition = [
             '(last_caom_mod IS NULL)',
+            '(last_modified > last_caom_mod)',
         ]
         if not no_status_check:
             status_condition.append(

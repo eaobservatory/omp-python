@@ -132,13 +132,15 @@ class OMPDB:
 
         # Look for last_caom_mod NULL or (optionally) comment newer than
         # last_caom_mod.
-        if no_status_check:
-            where.append('(last_caom_mod IS NULL)')
-        else:
-            where.append('((last_caom_mod IS NULL)'
-                            ' OR (last_caom_mod < (SELECT MAX(commentdate)'
+        status_condition = [
+            '(last_caom_mod IS NULL)',
+        ]
+        if not no_status_check:
+            status_condition.append(
+                            '(last_caom_mod < (SELECT MAX(commentdate)'
                                 ' FROM omp..ompobslog AS o'
-                                ' WHERE o.obsid=c.obsid)))')
+                                ' WHERE o.obsid=c.obsid))')
+        where.append('(' + ' OR '.join(status_condition) + ')')
 
         # Check that all files have been transferred.
         if not no_transfer_check:

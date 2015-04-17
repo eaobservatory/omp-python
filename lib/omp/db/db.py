@@ -91,7 +91,7 @@ class OMPDB:
         return rows[0][0]
 
     def find_obs_for_ingestion(self, utdate_start, utdate_end=None,
-                               no_status_check=False):
+                               no_status_check=False, no_transfer_check=False):
         """Find (raw) observations which are due for ingestion into CAOM-2.
 
         This method searches for observations matching these criteria:
@@ -110,6 +110,7 @@ class OMPDB:
                           range (default: None).
             no_status_check: disable criterion 3, and instead only look for
                              observations with NULL last_caom_mod
+            no_transfer_check: disable criterion 4
 
         Returns:
             A list of OBSID strings.
@@ -140,12 +141,13 @@ class OMPDB:
                                 ' WHERE o.obsid=c.obsid)))')
 
         # Check that all files have been transferred.
-        where.append('(SELECT COUNT(*) FROM jcmt..FILES AS f'
-                        ' JOIN jcmt..transfer AS t'
-                        ' ON f.file_id=t.file_id'
-                        ' WHERE f.obsid=c.obsid'
-                            ' AND t.status NOT IN ("t", "d", "D", "z"))'
-                        ' = 0')
+        if not no_transfer_check:
+            where.append('(SELECT COUNT(*) FROM jcmt..FILES AS f'
+                            ' JOIN jcmt..transfer AS t'
+                            ' ON f.file_id=t.file_id'
+                            ' WHERE f.obsid=c.obsid'
+                                ' AND t.status NOT IN ("t", "d", "D", "z"))'
+                            ' = 0')
 
         query = 'SELECT obsid FROM jcmt..COMMON AS c WHERE ' + ' AND '.join(where)
         result = []

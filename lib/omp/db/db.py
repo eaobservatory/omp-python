@@ -203,7 +203,8 @@ class OMPDB:
         This takes a start utdate and end utdate (can be the same to
         limit search to one day) and finds all observation in common.
 
-        Can optionally be limited by instrument name (based on INSTRUME column)
+        Can optionally be limited by instrument name (based on
+        INSTRUME column). Instrument name is not case sensitive.
 
         Args:
             utstart (int): start date (inclusive) in YYYYMMDD format
@@ -220,8 +221,8 @@ class OMPDB:
         args = {'@s': utstart, '@e': utend}
 
         if instrument:
-            query += ' AND instrume=@i'
-            args['@i'] = instrument
+            query += ' AND upper(instrume)=@i'
+            args['@i'] = instrument.upper()
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

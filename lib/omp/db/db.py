@@ -241,7 +241,7 @@ class OMPDB:
 
         This takes a start utdate and end utdate (can be the same to
         limit search to one day) and finds all obsids and their releasedates
-        from jcmt..COMMON
+        from jcmt..COMMON. Instrument search is not case sensitive.
 
         Can optionally be limited by instrument name (based on INSTRUME column)
 
@@ -260,8 +260,8 @@ class OMPDB:
         args = {'@s': utstart, '@e': utend}
 
         if instrument:
-            query += ' AND instrume=@i'
-            args['@i'] = instrument
+            query += ' AND upper(instrume)=@i'
+            args['@i'] = instrument.upper()
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

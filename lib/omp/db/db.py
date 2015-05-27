@@ -194,3 +194,78 @@ class OMPDB:
             #     raise NoRowsError('COMMON', query, args)
             # elif c.rowcount > 1:
             #     raise ExcessRowsError('COMMON', query, args)
+
+
+    def find_obs_by_date(self, utstart, utend, instrument=None):
+        """
+        Find observations from jcmt.COMMON in the OMP from date.
+
+        This takes a start utdate and end utdate (can be the same to
+        limit search to one day) and finds all observation in common.
+
+        Can optionally be limited by instrument name (based on INSTRUME column)
+
+        Args:
+            utstart (int): start date (inclusive) in YYYYMMDD format
+            utend (int):  end date (inclusive) in YYYYMMDD format
+            instrument (str): optional, limit results by this instrume name.
+
+        Returns:
+            list of str: All obsids found that match the limits.
+
+        """
+
+        query = ('SELECT obsid FROM jcmt..COMMON WHERE utdate>=@s AND '
+                 ' utdate <=@e ')
+        args = {'@s': utstart, '@e': utend}
+
+        if instrument:
+            query += ' AND instrume=@i'
+            args['@i'] = instrument
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+
+            rows = c.fetchall()
+
+        # Reformat output list.
+        if rows:
+            rows = [i[0] for i in rows]
+
+        return rows
+
+
+    def find_releasedates(self, utstart, utend, instrument=None):
+        """
+        Find releasedates from COMMON from date & instrument.
+
+        This takes a start utdate and end utdate (can be the same to
+        limit search to one day) and finds all obsids and their releasedates
+        from jcmt..COMMON
+
+        Can optionally be limited by instrument name (based on INSTRUME column)
+
+        Args:
+            utstart (int): start date (inclusive) in YYYYMMDD format
+            utend (int):  end date (inclusive) in YYYYMMDD format
+            instrument (str): optional, limit results by this instrume name.
+
+        Returns:
+            list of tuples: All obsids & releasedate pairs found that match the limits.
+
+        """
+
+        query = ('SELECT obsid, release_date FROM jcmt..COMMON WHERE utdate>=@s AND '
+                 ' utdate <=@e ')
+        args = {'@s': utstart, '@e': utend}
+
+        if instrument:
+            query += ' AND instrume=@i'
+            args['@i'] = instrument
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+
+            rows = c.fetchall()
+
+        return rows

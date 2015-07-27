@@ -268,3 +268,145 @@ class ArcDB(OMPDB):
             raise Exception('backend = ' + backend + ' is not supported')
 
         return self.read(sqlcmd)
+
+    def get_obs_bounds(self,
+                       project=None, date_start=None, date_end=None,
+                       instrument=None, not_instrument=None, backend=None,
+                       map_width=None, map_height=None,
+                       rest_freq=None, if_freq=None, bw_mode=None,
+                       obs_num=None, science_only=False, acsis_info=False,
+                       project_info=False, map_info=False,
+                       project_map_info=False, date_obs_info=False,
+                       object_info=False, no_freq_sw=False,
+                       exclude_known_bad=True, proprietary=None,
+                       allow_ec_cal=False, obstype=None):
+        """
+        Fetch the bounds from the JCMT COMMON table.
+        """
+
+        conditions = []
+        params = {}
+        needs_acsis = False
+        fields = ['obsratl', 'obsrabl', 'obsratr', 'obsrabr',
+                  'obsdectl', 'obsdecbl', 'obsdectr', 'obsdecbr']
+
+        if project is not None:
+            conditions.append('project=@p')
+            params['@p'] = project
+        else:
+            if not allow_ec_cal:
+                conditions.append('project NOT LIKE "%EC%"')
+                conditions.append('project <> "JCMTCAL"')
+                conditions.append('project <> "CAL"')
+
+        if date_start is not None:
+            conditions.append('utdate>=@ds')
+            params['@ds'] = int(date_start)
+
+        if date_end is not None:
+            conditions.append('utdate<=@de')
+            params['@de'] = int(date_end)
+
+        if instrument is not None:
+            conditions.append('UPPER(instrume)=@i')
+            params['@i'] = instrument.upper()
+        elif not_instrument is not None:
+            conditions.append('UPPER(instrume)<>@ni')
+            params['@ni'] = not_instrument.upper()
+
+        if backend is not None:
+            conditions.append('UPPER(backend)=@be')
+            params['@be'] = backend.upper()
+
+        if map_width is not None:
+            conditions.append('map_wdth=@w')
+            params['@w'] = map_width
+
+        if map_height is not None:
+            conditions.append('map_hght=@h')
+            params['@h'] = map_height
+
+        if obs_num is not None:
+            conditions.append('obsnum=@obs')
+            params['@obs'] = obs_num
+
+        if acsis_info:
+            needs_acsis = True
+            # Give sam_mode first so that it can be found for
+            # turning raster into scan...
+            fields.extend(('sam_mode', 'sw_mode', 'obs_type',
+                           'restfreq',
+                           'iffreq',
+                           'bwmode',
+                           ))
+
+        if rest_freq is not None:
+            needs_acsis = True
+            conditions.append('abs(restfreq - @rf) < 0.0001')
+            params['@rf'] = rest_freq
+
+        if if_freq is not None:
+            needs_acsis = True
+            conditions.append('abs(iffreq - @if) < 0.0001')
+            params['@if'] = if_freq
+
+        if bw_mode is not None:
+            needs_acsis = True
+            conditions.append('bwmode=@bwm')
+            params['@bwm'] = bw_mode
+
+        if project_info or project_map_info:
+            fields.append('project')
+
+        if map_info or project_map_info:
+            fields.append('SQRT(map_wdth * map_hght) AS map_size')
+
+        if date_obs_info:
+            fields.extend(('utdate', 'obsnum'))
+
+        if object_info:
+            fields.append('object')
+
+        if science_only:
+            conditions.append('obs_type="science"')
+        elif obstype is not None:
+            conditions.append('obs_type=@ot')
+            params['@ot'] = obstype
+
+        if no_freq_sw:
+            conditions.append('sw_mode<>"freqsw"')
+
+        if exclude_known_bad:
+            if instrument is None or instrument == 'SCUBA-2':
+                conditions.append('(NOT (utdate=20091026 AND obsnum=36))')
+
+            elif instrument is None or instrument == 'HARP':
+                conditions.append('(NOT (utdate=20090404 AND obsnum=94))')
+
+            else:
+                raise Exception('Unknown instrument {0}'.format(instrument))
+
+        if proprietary is None:
+            pass
+        elif proprietary:
+            conditions.append('release_date > getdate()')
+        else:
+            conditions.append('release_date <= getdate()')
+
+        if conditions:
+            condition = ' WHERE ' + ' AND '.join(conditions)
+        else:
+            condition = ''
+
+        if needs_acsis:
+            extra_table = ' LEFT JOIN jcmt..ACSIS ON ' \
+                'jcmt..COMMON.obsid=jcmt..ACSIS.obsid'
+        else:
+            extra_table = ''
+
+        with self.db.transaction() as c:
+            c.execute('SELECT ' + ', '.join(fields) +
+                      ' FROM jcmt..COMMON' + extra_table + condition,
+                      params)
+
+            return c.fetchall()

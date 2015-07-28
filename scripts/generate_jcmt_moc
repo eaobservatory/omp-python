@@ -47,6 +47,7 @@ def main():
 
     kwargs = {
         'backend': args['--backend'],
+        'instrument': args['--instrument'],
         'date_start': args['--date-start'],
         'date_end': args['--date-end'],
         'allow_ec_cal': (not args['--no-ec-cal']),

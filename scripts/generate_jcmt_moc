@@ -1,0 +1,78 @@
+#!/local/python/bin/python2
+
+# Copyright (C) 2015 East Asian Observatory
+# All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful,but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,51 Franklin
+# Street, Fifth Floor, Boston, MA  02110-1301, USA
+
+
+"""
+generate_jcmt_moc - Create MOC from JCMT observation database
+
+Usage:
+    generate_jcmt_moc [--backend <backend>] [--instrument <instrument] [--proprietary | --no-proprietary] [--date-start <date-start>] [--date-end <date-end>] --output <filename> --order <order> [--no-ec-cal] [--clobber]
+
+Options:
+    --backend <backend>        Backend
+    --instrument <instrument>  Instrument
+    --output, -o <filename>    Output filename
+    --order <order>            MOC order [default: 12]
+    --date-start <date-start>  Start date
+    --date-end <date-end>      End date
+"""
+
+
+from __future__ import absolute_import, division, print_function
+
+from omp.db.part.arc import ArcDB
+from omp.healpix import obs_bounds_to_moc
+
+from docopt import docopt
+
+
+def main():
+    args = docopt(__doc__)
+
+    kwargs = {
+        'backend': args['--backend'],
+        'date_start': args['--date-start'],
+        'date_end': args['--date-end'],
+        'allow_ec_cal': (not args['--no-ec-cal']),
+        'project_info': True,
+        'date_obs_info': True,
+    }
+
+    if args['--proprietary']:
+        kwargs['proprietary'] = True
+    elif args['--no-proprietary']:
+        kwargs['proprietary'] = False
+
+    omp = ArcDB()
+
+    (moc, projects) = obs_bounds_to_moc(
+        int(args['--order']),
+        omp.get_obs_bounds(**kwargs),
+        project_info=True)
+
+    for project in sorted(projects):
+        print(project)
+
+    if moc is None:
+        print('No observations found')
+    else:
+        moc.write(args['--output'], clobber=args['--clobber'])
+
+if __name__ == '__main__':
+    main()

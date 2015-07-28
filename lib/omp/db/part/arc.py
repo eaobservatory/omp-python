@@ -380,8 +380,13 @@ class ArcDB(OMPDB):
             if instrument is None or instrument == 'SCUBA-2':
                 conditions.append('(NOT (utdate=20091026 AND obsnum=36))')
 
+            # TODO: presumably both should apply when instrument is None.
+            # (But with instrument constraints since obsnum values repeat.)
             elif instrument is None or instrument == 'HARP':
                 conditions.append('(NOT (utdate=20090404 AND obsnum=94))')
+
+            elif instrument == 'RxA3':
+                pass
 
             else:
                 raise Exception('Unknown instrument {0}'.format(instrument))

@@ -386,7 +386,7 @@ class ArcDB(OMPDB):
                 conditions.append('(NOT (utdate=20090404 AND obsnum=94))')
 
             elif instrument == 'RxA3':
-                pass
+                conditions.append('(NOT (utdate=20150814 AND obsnum=50))')
 
             else:
                 raise Exception('Unknown instrument {0}'.format(instrument))

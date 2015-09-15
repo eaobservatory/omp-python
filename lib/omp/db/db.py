@@ -265,8 +265,8 @@ class OMPDB:
             query += ' AND upper(instrume)=@i'
             args['@i'] = instrument.upper()
         if backend:
-            query += ' AND upper(backend)=@i'
-            args['@i'] = backend.upper()
+            query += ' AND upper(backend)=@b'
+            args['@b'] = backend.upper()
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

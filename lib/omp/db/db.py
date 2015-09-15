@@ -236,7 +236,7 @@ class OMPDB:
         return rows
 
 
-    def find_releasedates(self, utstart, utend, instrument=None):
+    def find_releasedates(self, utstart, utend, instrument=None, backend=None):
         """
         Find releasedates from COMMON from date & instrument.
 
@@ -250,6 +250,7 @@ class OMPDB:
             utstart (int): start date (inclusive) in YYYYMMDD format
             utend (int):  end date (inclusive) in YYYYMMDD format
             instrument (str): optional, limit results by this instrume name.
+            backend (str): optional, limit results by this backend
 
         Returns:
             list of tuples: All obsids & releasedate pairs found that match the limits.
@@ -263,6 +264,9 @@ class OMPDB:
         if instrument:
             query += ' AND upper(instrume)=@i'
             args['@i'] = instrument.upper()
+        if backend:
+            query += ' AND upper(backend)=@i'
+            args['@i'] = backend.upper()
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

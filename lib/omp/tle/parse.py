@@ -106,6 +106,9 @@ class TLEParser(object):
         if decimal.startswith('-'):
             decimal = decimal[1:]
             sign = -1.0
+        elif decimal.startswith('+'):
+            decimal = decimal[1:]
+            sign = 1.0
         else:
             sign = 1.0
 

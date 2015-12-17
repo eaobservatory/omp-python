@@ -84,7 +84,7 @@ instruments = {
 }
 
 queries = {
-    'JLS': 'jls',
+    'LAP': 'lap',
     'PI projects': 'pi',
     'Nothing left': 'nl',
 }

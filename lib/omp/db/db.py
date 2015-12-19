@@ -15,7 +15,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from datetime import datetime
 from keyword import iskeyword
 
@@ -274,3 +274,201 @@ class OMPDB:
             rows = c.fetchall()
 
         return rows
+
+    def get_observations_from_project(self, projectcode, utdatestart=None, utdateend=None, instrument=None):
+        """Get information about a project's observations.
+
+        This is designed for getting summary information for
+        monitoring of jcmt large programs. It can be limited by date
+        range or instrument.
+
+        Parameters:
+
+        projectcode (str): required, OMP project code.
+
+        utdatestart (int,YYYYMMDD'): optional, limit to observations after this date (inc)
+        utdateend (int, 'YYYYMMDD'): optional, limit to observations before this date (inc)
+        instrument (str): optional, limit by instrument
+
+        Return a dictionary of namedtuples, with the obsid as the key.
+
+        """
+
+        query = ("SELECT c.obsid, instrume, c.wvmtaust, c.wvmtauen, c.utdate, c.obsnum, c.object,"
+                 " datediff(second, c.date_obs, c.date_end) as time, o.commentstatus, o.commenttext"
+                 " FROM jcmt..COMMON as c join omp..ompobslog as o"
+                 " ON  c.obsid=o.obsid"
+                 " WHERE project=@p"
+                 " AND obslogid in (SELECT MAX(obslogid) FROM omp..ompobslog GROUP BY obsid)")
+
+        args = {'@p': str(projectcode).upper()}
+
+        # Limit by instrument and date if requested.
+        if instrument:
+            query += ' AND upper(instrume)=@i'
+            args['@i'] = str(instrument).upper()
+
+        if utdatestart:
+            query += ' AND utdate >= @s'
+            args['@s'] = utdatestart
+
+        if utdateend:
+            query += ' AND utdate <= @e'
+            args['@e'] = utdateend
+
+
+        # Order by date.
+        query += ' ORDER BY c.utdate ASC '
+
+        projobsinfo = namedtuple('projobsinfo',
+            'obsid instrument wvmtaust wvmtauen utdate obsnum object duration status commenttext')
+
+        # Carry out query
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = OrderedDict( [ [i[0], projobsinfo(*i)] for i in rows] )
+        return results
+
+    def get_summary_obs_info(self, projectpattern):
+        """Get summary of obs info for projects.
+
+        Gets the number and duration of obsrvations per project, split
+        up by omp status, weatherband and instrument.
+
+        """
+        projobsinfo = namedtuple('projobsinfo', 'project instrument band status number totaltime')
+
+        query = ("SELECT t.project, t.instrume, t.band, t.commentstatus," \
+                 "       count(*) as numobs, sum(t.duration) as totaltime " \
+                 "FROM ( " \
+                 "      SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration," \
+                 "             CASE WHEN o.commentstatus is NULL "\
+                 "                  THEN 0 "\
+                 "                  ELSE o.commentstatus "\
+                 "             END AS commentstatus, "\
+                 "             CASE WHEN (wvmtaust+wvmtauen)/2.0 between 0    and 0.05 then '1' "\
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.05 and 0.08 then '2' "\
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.08 and 0.12 then '3' "\
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.12 and 0.2  then '4' "\
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.2  and 100  then '5' "\
+                 "                  ELSE 'unknown' "\
+                 "             END AS band "\
+                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "\
+                 "      WHERE c.obsid*=o.obsid AND project LIKE @p "\
+                 "            AND o.obslogid IN (SELECT MAX(obslogid) FROM omp..ompobslog GROUP BY obsid) "\
+                 "    ) t "\
+                 "GROUP BY t.project, t.instrume, t.band, t.commentstatus "\
+                 "ORDER BY t.project, t.instrume, t.band ASC, t.commentstatus ASC ")
+
+        args = {'@p': projectpattern }
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [projobsinfo(*i) for i in rows]
+
+        return results
+
+    def get_summary_msb_info(self, projectpattern):
+        """Get overview of the msbs waiting to be observed.
+
+        Returns a list of namedtuples, each namedtuple represents the
+        summary for one project that matches the projectpattern.
+
+        """
+        projmsbinfo = namedtuple('projmsbinfo', 'project uniqmsbs totalmsbs totaltime taumin taumax')
+
+        query = ("SELECT o.projectid, count(*), sum(o.remaining), "\
+                 "       sum(o.timeest*o.remaining), o.taumin, o.taumax "\
+                 "FROM omp..ompmsb as o "\
+                 "WHERE o.projectid LIKE @p AND o.remaining > 0 "\
+                 "GROUP BY o.taumin, o.taumax, o.projectid "\
+                 "ORDER BY o.projectid, o.taumin, o.taumax ")
+
+        args = {'@p': projectpattern}
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [projmsbinfo(*i) for i in rows]
+
+        return results
+
+    def get_time_charged_project_info(self, projectcode):
+        """
+        Get time charged per day for a project.
+
+        Returns list of namedtuples, ordered by date.
+        """
+
+        query = "SELECT date, timespent, confirmed from omp..omptimeacct WHERE projectid=@p ORDER BY date ASC"
+        args = {'@p': projectcode}
+
+        timeinfo = namedtuple('timeinfo', 'date timespent confirmed')
+
+        # Carry out query
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [timeinfo(*i) for i in rows]
+        return results
+
+
+
+    def get_fault_summary(self, projectpattern):
+
+        """
+        Get all faults associated with  projects matching the projectpattern.
+
+        projectpattern: string, needs to match projectids in a LIKE DB
+        search.  e.g. projectpattern='M16AL%' would find all the 16A
+        large programmes.
+
+        Returns a list of namedtuples.
+
+        """
+        query = ("SELECT a.projectid, f.faultid, f.status, f.subject "\
+                 "FROM omp..ompfaultassoc as a JOIN omp..ompfault as f "\
+                 "ON a.faultid = f.faultid "\
+                 "WHERE a.projectid LIKE @p")
+        args = {'@p': projectpattern.lower()}
+        faultinfo = namedtuple('faultinfo', 'project faultid status subject')
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [faultinfo(*i) for i in rows]
+        return results
+
+    def get_allocation_project(self, projectcode, like=None):
+        """
+        Get allocation info for a project.
+
+        If like=True, then use a 'LIKE' match and get results for
+        multiple projects.
+
+        Return a dictionary of named tuples, with the projectcode as
+        the key.
+
+        """
+
+        allocinfo = namedtuple('allocinfo', 'pi title semester allocated remaining pending taumin taumax')
+
+        query = ("SELECT projectid, pi, title, semester, allocated, remaining, pending, taumin, taumax "
+                 " FROM omp..ompproj")
+
+        if like:
+            query += ' WHERE projectid LIKE @p '
+        else:
+            query+='  WHERE projectid=@p '
+
+        args={'@p': projectcode}
+
+        # Carry out query
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+
+            results = OrderedDict([[i[0], allocinfo(*i[1:])] for i in rows])
+
+        return results

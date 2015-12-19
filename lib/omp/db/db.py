@@ -472,3 +472,50 @@ class OMPDB:
             results = OrderedDict([[i[0], allocinfo(*i[1:])] for i in rows])
 
         return results
+
+    def get_cadcusers_and_projects(self, telescope='JCMT'):
+        """
+        Get COI and PI cadcusernames for all projects.
+
+        Excludes semester='MEGA' and semester='JAC'.
+
+        Returns a list of namedtuples, giving the projectid, the cadc
+        username and the capacity (i.e. COI or PI).
+
+        """
+
+        projectuser = namedtuple('projectuser', 'project cadcuser capacity')
+
+        query=(
+            "SELECT a.projectid, b.cadcuser, a.capacity "\
+            "FROM omp..ompprojuser as a JOIN omp..ompuser AS b ON a.userid=b.userid "\
+            "WHERE b.cadcuser IS NOT NULL "\
+            "  AND (a.capacity = 'PI' OR a.capacity = 'COI') "\
+            "  AND a.projectid IN "\
+            "(SELECT projectid from omp..ompproj "\
+            "  WHERE telescope=@t AND semester !='MEGA' AND semester !='JAC')"\
+            "ORDER BY a.projectid, b.cadcuser")
+        args={'@t': telescope}
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, {})
+            rows = c.fetchall()
+            results = [projectuser(*i) for i in rows]
+        return results
+
+    def get_projectids(self, semester, telescope='JCMT'):
+        """
+        Get all the projects from the OMP for a given semester and telescope.
+
+        Returns a list of projectids as strings.
+        """
+
+        query = ("SELECT projectid FROM omp..ompproj WHERE semester=@s AND telescope=@t")
+        args = {'@s': semester, '@t': telescope}
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            rows = [i[0] for i in rows]
+
+        return rows

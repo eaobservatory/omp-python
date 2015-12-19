@@ -498,7 +498,7 @@ class OMPDB:
         args={'@t': telescope}
 
         with self.db.transaction(read_write=False) as c:
-            c.execute(query, {})
+            c.execute(query, args)
             rows = c.fetchall()
             results = [projectuser(*i) for i in rows]
         return results

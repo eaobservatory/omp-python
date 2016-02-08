@@ -279,6 +279,7 @@ class ArcDB(OMPDB):
                        project_map_info=False, date_obs_info=False,
                        object_info=False, no_freq_sw=False,
                        exclude_known_bad=True, proprietary=None,
+                       proprietary_date=None,
                        allow_ec_cal=False, obstype=None):
         """
         Fetch the bounds from the JCMT COMMON table.
@@ -396,10 +397,15 @@ class ArcDB(OMPDB):
 
         if proprietary is None:
             pass
-        elif proprietary:
-            conditions.append('release_date > getdate()')
         else:
-            conditions.append('release_date <= getdate()')
+            if proprietary_date is None:
+                prop_date_str = 'getdate()'
+            else:
+                prop_date_str = '"' + proprietary_date + '"'
+            if proprietary:
+                conditions.append('release_date > ' + prop_date_str)
+            else:
+                conditions.append('release_date <= ' + prop_date_str)
 
         if conditions:
             condition = ' WHERE ' + ' AND '.join(conditions)

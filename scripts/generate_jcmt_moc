@@ -22,7 +22,12 @@
 generate_jcmt_moc - Create MOC from JCMT observation database
 
 Usage:
-    generate_jcmt_moc [--backend <backend>] [--instrument <instrument] [--proprietary | --no-proprietary] [--date-start <date-start>] [--date-end <date-end>] --output <filename> --order <order> [--no-ec-cal] [--clobber]
+    generate_jcmt_moc --output <filename> --order <order>
+        [--backend <backend>] [--instrument <instrument]
+        [--proprietary |--no-proprietary]
+        [--proprietary-date <proprietary-date>]
+        [--date-start <date-start>] [--date-end <date-end>]
+        [--no-ec-cal] [--clobber]
 
 Options:
     --backend <backend>        Backend
@@ -31,6 +36,7 @@ Options:
     --order <order>            MOC order [default: 12]
     --date-start <date-start>  Start date
     --date-end <date-end>      End date
+    --proprietary-date <proprietary-date>  Date for proprietary test
 """
 
 
@@ -53,6 +59,7 @@ def main():
         'allow_ec_cal': (not args['--no-ec-cal']),
         'project_info': True,
         'date_obs_info': True,
+        'proprietary_date': args['--proprietary-date'],
     }
 
     if args['--proprietary']:

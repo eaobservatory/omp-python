@@ -519,3 +519,48 @@ class OMPDB:
             rows = [i[0] for i in rows]
 
         return rows
+
+    def rename_project(self, project_old, project_new):
+        """
+        Change all the OMP database tables which refer to the given
+        project to refer to it by the new name.
+        """
+
+        tables = [
+            'ompfaultassoc',
+            'ompfeedback',
+            'ompmsb',
+            'ompmsbdone',
+            'ompobs',
+            'ompobs',
+            'ompproj',
+            'ompprojaffiliation',
+            'ompprojqueue',
+            'ompprojuser',
+            'ompprojuser_order',
+            'ompsciprog',
+            'ompsciprog_id',
+            'omptimeacct',
+        ]
+
+        # First check the "new" project doesn't already exist (so that we
+        # don't muddle them up).
+        with self.db.transaction(read_write=False) as c:
+            for table in tables:
+                c.execute(
+                    'SELECT COUNT(*) FROM omp..{} WHERE projectid=@n'.format(table),
+                    {'@n': project_new})
+
+                n_existing = c.fetchall()[0][0]
+
+                if n_existing != 0:
+                    raise OMPDBError(
+                        'project code {} already exists in table {}'.format(
+                            project_new, table))
+
+        # Then go ahead and change the project identifier.
+        with self.db.transaction(read_write=True) as c:
+            for table in tables:
+                c.execute(
+                    'UPDATE omp..{} SET projectid=@n WHERE projectid=@o'.format(table),
+                    {'@n': project_new, '@o': project_old})

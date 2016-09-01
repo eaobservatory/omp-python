@@ -564,3 +564,18 @@ class OMPDB:
                 c.execute(
                     'UPDATE omp..{} SET projectid=@n WHERE projectid=@o'.format(table),
                     {'@n': project_new, '@o': project_old})
+
+
+    def get_support_projects(self, projectcode, userid, semester):
+        """
+        Return all projects supported by a given userid for a given semester.
+
+        """
+        query = ("SELECT p.projectid FROM omp..ompproj AS p JOIN omp..ompprojuser AS u ON p.projectid=u.projectid " \
+                " WHERE u.userid=@u AND u.capacity='SUPPORT' AND p.semester=@s")
+        args = {'@u': userid, '@s': semester}
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            projects = c.fetchall()
+
+        return projects

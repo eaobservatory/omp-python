@@ -566,7 +566,7 @@ class OMPDB:
                     {'@n': project_new, '@o': project_old})
 
 
-    def get_support_projects(self, projectcode, userid, semester):
+    def get_support_projects(self, userid, semester):
         """
         Return all projects supported by a given userid for a given semester.
 
@@ -577,5 +577,5 @@ class OMPDB:
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)
             projects = c.fetchall()
-
+        projects = [i[0] for i in projects]
         return projects

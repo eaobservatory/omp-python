@@ -44,6 +44,10 @@ parser.add_argument(
     '--dry-run', '-n',
     required=False, default=False, action='store_true',
     help='Do not write the results into the database')
+parser.add_argument(
+    '--include-removed',
+    required=False, default=False, action='store_true',
+    help='Include TLEs from MSBs without repeats remaining')
 
 args = parser.parse_args()
 
@@ -61,7 +65,7 @@ omp = TLEDB(read_only=args.dry_run)
 errors = []
 
 logger.info('Fetching TLE IDs from OMP')
-ids = omp.retrieve_ids()
+ids = omp.retrieve_ids(include_removed=args.include_removed)
 
 for cat_id in ids:
 	if not cat_id.startswith("NORAD"):

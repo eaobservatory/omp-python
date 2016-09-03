@@ -66,11 +66,22 @@ class TLEDB(object):
                                '@el8': tle["el8"]
                            })
 
-    def retrieve_ids(self):
+    def retrieve_ids(self, include_removed=False):
         """Finds all auto update tles"""
         with self.db.transaction() as cursor:
-            logger.debug('Retrieving list of distinct AUTO-TLE targets from ompobs')
-            cursor.execute("SELECT DISTINCT target FROM omp..ompobs WHERE coordstype=\"AUTO-TLE\"")
+            if include_removed:
+                logger.debug('Retrieving list of distinct AUTO-TLE targets from ompobs')
+                cursor.execute(
+                    'SELECT DISTINCT target FROM omp..ompobs'
+                    ' WHERE coordstype="AUTO-TLE"')
+            else:
+                logger.debug('Retrieving list of distinct AUTO-TLE targets from ompobs'
+                             ' but only from MSBs with repeats remaining')
+                cursor.execute(
+                    'SELECT DISTINCT target FROM omp..ompobs'
+                    ' JOIN omp..ompmsb ON omp..ompobs.msbid = omp..ompmsb.msbid'
+                    ' WHERE coordstype="AUTO-TLE"'
+                    ' AND remaining > 0')
             rows = cursor.fetchall()
 
         return [r[0] for r in rows]

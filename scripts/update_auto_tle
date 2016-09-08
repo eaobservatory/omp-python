@@ -70,14 +70,14 @@ logger.info('Fetching TLE IDs from OMP')
 ids = omp.retrieve_ids(include_removed=args.include_removed)
 
 for cat_id in ids:
-	if not cat_id.startswith("NORAD"):
-		logger.warning('Bad TLE ID {0}'.format(cat_id))
-		errors.append(cat_id)
-		continue
-	cat_id = cat_id[5:]
+    if not cat_id.startswith("NORAD"):
+        logger.warning('Bad TLE ID {0}'.format(cat_id))
+        errors.append(cat_id)
+        continue
+    cat_id = cat_id[5:]
 
-	logger.debug('Adding to list NORAD TLE ID {0}'.format(cat_id))
-	strack.add_id(cat_id)
+    logger.debug('Adding to list NORAD TLE ID {0}'.format(cat_id))
+    strack.add_id(cat_id)
 
 logger.info('Sending SpaceTrack request')
 tles = strack.send_request()
@@ -88,34 +88,34 @@ flag = 0
 
 logger.info('Reading SpaceTrack response')
 for tle in tles:
-	logger.debug('Got TLE line: {0}'.format(tle))
+    logger.debug('Got TLE line: {0}'.format(tle))
 
-	if flag == 1:
-		line2 = tle
+    if flag == 1:
+        line2 = tle
 
-		try:
-			parsed = parse.parse_tle(line1, line2)
-			ex_tle = parse.export_tle_omp(parsed)
-		except ValueError as e:
-			errors.append(e.message)
-			continue
+        try:
+            parsed = parse.parse_tle(line1, line2)
+            ex_tle = parse.export_tle_omp(parsed)
+        except ValueError as e:
+            errors.append(e.message)
+            continue
 
-		if not args.dry_run:
-			logger.debug('Submitting TLE to OMP omptle table')
-			omp.submit_tle(ex_tle)
+        if not args.dry_run:
+            logger.debug('Submitting TLE to OMP omptle table')
+            omp.submit_tle(ex_tle)
 
-			logger.debug('Updating TLE in OMP ompobs table')
-			omp.update_tle_ompobs(ex_tle)
+            logger.debug('Updating TLE in OMP ompobs table')
+            omp.update_tle_ompobs(ex_tle)
 
-		else:
-			logger.info('Not writing "%s" to the database [DRY RUN]',
-				    ex_tle['target'])
+        else:
+            logger.info('Not writing "%s" to the database [DRY RUN]',
+                        ex_tle['target'])
 
-		flag = 0
-	elif flag == 0:
-		line1 = tle
-		flag = 1
+        flag = 0
+    elif flag == 0:
+        line1 = tle
+        flag = 1
 
 if len(errors) != 0:
-	err_str = "Errors encountered" + ", ".join(errors)
-	sys.exit(err_str)
+    err_str = "Errors encountered" + ", ".join(errors)
+    sys.exit(err_str)

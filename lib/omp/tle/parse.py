@@ -1,4 +1,5 @@
 # Copyright (C) 2014 Science and Technology Facilities Council.
+# Copyright (C) 2016 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from codecs import latin_1_encode
 import datetime
 import logging
 from math import radians
@@ -78,9 +78,19 @@ class TLEParser(object):
         logger.debug('Parsing TLE, line 2: {0}'.format(line2))
 
         if len(line1) < 62 or len(line2) < 69:
-            return None
+            raise ValueError('unparseable TLE')
+
+        id_ = line1[2:7]
+        try:
+            id_ = int(id_)
+        except ValueError:
+            raise ValueError('invalid identifier {0}'.format(id_))
+
+        if not (0 <= id_ <= 99999):
+            raise ValueError('identifier {0} out of range'.format(id_))
+
         tle = self.tle.copy()
-        tle[self.tletype] = self.tletype + latin_1_encode(line1[2:7])[0]
+        tle[self.tletype] = '{0}{1:05d}'.format(self.tletype, id_)
         tle["Class"] = line1[7]
         tle["Intl Desig"] = line1[9:17]
         tle["Epoch"] = self.convert_epoch(line1[18:32])

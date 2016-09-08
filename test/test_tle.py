@@ -1,4 +1,5 @@
 # Copyright (C) 2014 Science and Technology Facilities Council.
+# Copyright (C) 2016 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -102,6 +103,19 @@ class TestTLEParse(unittest.TestCase):
                                'ElSet Type': '0', 'Element Num': ' 769',
                                'Second D': ' 00000-0', 'Rev at Epoch': '89727',
                                'Class': 'U', 'Mean Anomoly': 3.6700225005576126})
+
+        # Test correcting badly formatted identifiers.
+        ans = self.parse.parse_tle("1  5544U 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",
+                                   "2  5544 051.6472 269.5323 0006361 286.1580 210.2768 15.50427728897273")
+        self.assertEqual(ans['NORAD'], 'NORAD05544')
+
+        with self.assertRaisesRegexp(ValueError, 'invalid identifier NOT_N'):
+            self.parse.parse_tle("1 NOT_NU 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",
+                                 "2 NOT_N 051.6472 269.5323 0006361 286.1580 210.2768 15.50427728897273")
+
+        with self.assertRaisesRegexp(ValueError, 'identifier -1234 out of range'):
+            self.parse.parse_tle("1 -1234U 98067A   14206.52997318 -.00005757  00000-0 -91404-4 0  7690",
+                                 "2 -1234 051.6472 269.5323 0006361 286.1580 210.2768 15.50427728897273")
 
     def test_convert_epoch(self):
         """Test Epoch converter"""

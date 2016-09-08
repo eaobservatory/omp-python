@@ -1,5 +1,7 @@
 #!/local/python/bin/python2
+
 # Copyright (C) 2014 Science and Technology Facilities Council.
+# Copyright (C) 2016 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -90,10 +92,13 @@ for tle in tles:
 
 	if flag == 1:
 		line2 = tle
-		parsed = parse.parse_tle(line1, line2)
-		if parsed is None:
+
+		try:
+			parsed = parse.parse_tle(line1, line2)
+			ex_tle = parse.export_tle_omp(parsed)
+		except ValueError as e:
+			errors.append(e.message)
 			continue
-		ex_tle = parse.export_tle_omp(parsed)
 
 		if not args.dry_run:
 			logger.debug('Submitting TLE to OMP omptle table')

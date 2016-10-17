@@ -24,12 +24,12 @@ from pytz import UTC
 from omp.db.backend.sybase import OMPSybaseLock
 from omp.error import OMPDBError
 
-
 class OMPDB:
     """OMP and JCMT database access class.
     """
 
     CommonInfo = None
+    FullObservationInfo = None
 
     def __init__(self, **kwargs):
         """Construct new OMP and JCMT database object.
@@ -330,8 +330,12 @@ class OMPDB:
             results = OrderedDict( [ [i[0], projobsinfo(*i)] for i in rows] )
         return results
 
-    def get_summary_obs_info(self, projectpattern):
+    def get_summary_obs_info(self, queue, semester="%", utdatestart=0, utdateend=50000000):
         """Get summary of obs info for projects.
+
+        Returns everything for a given queue & semester combo. Uses
+        'like' evalutation for seemester and queue (named country in OMP), so can match
+        everything if needed.
 
         Gets the number and duration of obsrvations per project, split
         up by omp status, weatherband and instrument.
@@ -355,13 +359,15 @@ class OMPDB:
                  "                  ELSE 'unknown' "\
                  "             END AS band "\
                  "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "\
-                 "      WHERE c.obsid*=o.obsid AND project LIKE @p "\
+                 "      WHERE c.obsid*=o.obsid AND project in "
+                 "             (SELECT q.projectid FROM omp..ompprojqueue AS q JOIN omp..ompproj AS p ON q.projectid=p.projectid WHERE q.country LIKE @q AND p.semester LIKE @s) "\
                  "            AND o.obslogid IN (SELECT MAX(obslogid) FROM omp..ompobslog GROUP BY obsid) "\
+                 "            AND utdate>=@d AND utdate <=@e "\
                  "    ) t "\
                  "GROUP BY t.project, t.instrume, t.band, t.commentstatus "\
                  "ORDER BY t.project, t.instrume, t.band ASC, t.commentstatus ASC ")
 
-        args = {'@p': projectpattern }
+        args = {'@q': queue, '@s':semester, '@d': utdatestart, '@e': utdateend }
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)
@@ -579,3 +585,201 @@ class OMPDB:
             projects = c.fetchall()
         projects = [i[0] for i in projects]
         return projects
+
+    def get_jcmt_observed_projects(self, utdatestart, utdateend):
+        """
+        Get all projects observed between two dates.
+        utdatestart (int): inclusive start UT date
+        utdateend (int): inclusive end UT date
+
+        Return a list of namedtuples with project, semester and country and tagpriority
+        """
+        projinfo = namedtuple('projinfo', 'project semester country tagpriority')
+
+        query = ("SELECT p.projectid, p.semester, q.country, q.tagpriority "
+                 "FROM omp..ompproj AS p JOIN omp..ompprojqueue AS q ON p.projectid=q.projectid "
+                 "WHERE p.projectid IN ( "
+                 "   SELECT DISTINCT project FROM jcmt..COMMON WHERE utdate>=@s AND utdate<=@e "
+                 " ) "
+                 "ORDER BY p.semester, q.country, p.projectid"
+                 )
+        args = {'@s': utdatestart, '@e': utdateend}
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [projinfo(*i) for i in rows]
+
+        return results
+
+    def get_acsis_info(self, projectcode):
+        """
+        """
+        query = ("SELECT obsid, molecule, transiti, bwmode, subsysnr, doppler, zsource, restfreq "
+                 " FROM jcmt..ACSIS WHERE obsid in (SELECT obsid from jcmt..COMMON where project=@p)")
+        args = {'@p': projectcode}
+        acsisInfo = namedtuple('acsisInfo', "obsid, molecule transition bwmode subsysnr doppler zsource restfreq")
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            values = c.fetchall()
+        if not values:
+            return None
+        else:
+            return [acsisInfo(*i) for i in values]
+
+    def get_observations(self, projectcode, utdatestart=None, utdateend=None, ompstatus=None):
+        """Get a project's observations, optionally limited by date/status.
+
+        Returns a NamedTuple object containing everything from the
+        JCMT COMMON Table, as well as the most recent comment
+        information from the omp ompobslog table. If there is no
+        comment in the ompobslog, it will assume a status of 0 (good)
+        and return 'None' for the commenttext, commentauthor and
+        commentdate.
+
+        Note: This uses the 'utdate' column in the COMMON
+        table. Ocassionally (usually for observations that extend over
+        the utdate chang) this value may not be what you expect.
+
+        Arguments:
+           projectcode, str: project ID (as it appears in COMMON, usually uppercase)
+
+        Keywords:
+           utdatestart, int: YYYYMMDD Only include obs with obsid on or after this date
+           utdateend, int: YYYYMMDD Only include obs taken on or before this date.
+
+        """
+        query = ("SELECT c.*, "
+                 " CASE WHEN p.commentstatus is NULL THEN 0 ELSE p.commentstatus END AS commentstatus, "
+                 " p.commenttext, p.commentauthor, p.commentdate "
+                 " FROM omp..ompobslog AS p, jcmt..COMMON AS c "
+                 " WHERE c.obsid*=p.obsid AND obslogid IN "
+                 "   (SELECT MAX(obslogid) from omp..ompobslog WHERE obsactive=1 GROUP BY obsid) "
+                 "  AND c.project=@p ")
+
+        args = {'@p': projectcode}
+
+        if utdatestart:
+            query += ' AND c.utdate >= @s '
+            args['@s'] = utdatestart
+        if utdateend:
+            query += ' AND c.utdate <= @e '
+            args['@e'] = utdateend
+
+        # If wanting to exclude NULL values, change query.
+        if ompstatus and ompstatus != 0:
+            query = query.replace('*=', '=')
+            query += ' AND p.commentstatus = @c'
+            args['@c'] = ompstatus
+
+        elif ompstatus and ompstatus == 0:
+            query += ' AND p.commentstatus = @c'
+            args['@c'] = ompstatus
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            values = c.fetchall()
+            cols = c.description
+
+        if not values:
+            return None
+
+        if self.FullObservationInfo is None:
+            self.FullObservationInfo = namedtuple(
+                'FullObservationInfo',
+                ['{0}_'.format(x[0]) if iskeyword(x[0]) else x[0]
+                 for x in cols])
+
+        return [self.FullObservationInfo(*i) for i in values]
+
+    def get_remaining_msb_info(self, projectcode):
+        """Return msb information for project.
+
+        Returns a tuple of list of results and column names.
+
+        If there are no results, returns a tuple with an empty list
+        for the results.
+
+        """
+        query = ("SELECT pol, instrument, title, wavelength, target, coordstype, ra2000, dec2000, remaining, "
+                 " a.timeest,  taumin, taumax, priority "
+                 " FROM omp..ompobs AS a JOIN omp..ompmsb  as m ON a.msbid=m.msbid "
+                 " WHERE m.projectid=@p AND m.remaining > 0 ")
+        args = {'@p': projectcode}
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            results = c.fetchall()
+            cols = c.description
+
+        MsbInfo= namedtuple(
+                'MsbInfo',
+                ['{0}_'.format(x[0]) if iskeyword(x[0]) else x[0]
+                 for x in cols])
+        return [MsbInfo(*i) for i in results]
+
+    def get_project_info(self, projectcode):
+        """
+        Return project title, semester, hours_assigned, hours_used, taumin, tamx,
+
+        Also:
+        PI
+
+        """
+        projinfo = namedtuple('projinfo', 'id title semester allocated_hours remaining_hours opacityrange state pi fops cois')
+        userinfo = namedtuple('userinfo', 'userid uname email cadcuser contactable')
+
+        query_users = ("SELECT u.userid, uname, email, cadcuser, contactable, capacity "
+                       "FROM omp..ompprojuser AS pu  JOIN omp..ompuser AS u ON pu.userid=u.userid "
+                       "WHERE projectid=@p")
+
+        query_proj = ("SELECT projectid, title, semester, allocated/(60.0*60.0), remaining/(60.0*60.0), taumin, taumax, state "
+                 "FROM omp..ompproj "
+                 "WHERE projectid=@p")
+
+        args = {'@p': projectcode}
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query_users, args)
+            uservalues = c.fetchall()
+            fops = []
+            pi = []
+            cois = []
+            for i in uservalues:
+                if i[-1] == 'PI':
+                    pi.append(userinfo(*i[0:-1]))
+                elif i[-1] == 'COI':
+                    cois.append(userinfo(*i[0:-1]))
+                elif i[-1] == 'SUPPORT':
+                    fops.append(userinfo(*i[0:-1]))
+                else:
+                    logger.warning('User {} in project {} has an unknown capacity {}'.format(i[0], projectcode, i[4]))
+            c.execute(query_proj, args)
+            projvalues = c.fetchall()
+        if len(projvalues) > 1:
+            raise OMPDBError('Multiple projects found for 1 ID!')
+        if len(projvalues) == 0:
+            raise OMPDBError('No project found for {}'.format(projectcode))
+        projvalues = list(projvalues[0])
+        projvalues = projvalues[0:5] + [(projvalues[5], projvalues[6])] + projvalues[7:] + [pi] + [fops] + [cois]
+        project_info = projinfo(*projvalues)
+        return project_info
+
+
+    def get_project_time_by_weatherband(queue=None, project=None, utdatestart=None, utdateend=None):
+        """Return minutes spend (by observation duration) per project
+
+
+        Either queue or project must be given. Project will be
+        evaluated on a 'LIKE' basis.
+
+        Please note: this does not exclude JUNK/BAD/QUESTIONABLE
+        observations from the time calculation!
+
+        Time charged to projects is different from this: it will also
+        include a share of time gaps from each night, exclude JUNK/BAD
+        observations, and may include other charging variations due to
+        e.g. charging half time for observing in a worse weather band,
+        human error etc.
+
+        """
+

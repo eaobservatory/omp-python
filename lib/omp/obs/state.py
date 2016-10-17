@@ -89,3 +89,20 @@ class OMPState:
             return cls._info[state].caom_junk
         except KeyError:
             raise OMPError('Unknown OMP state code {0}'.format(state))
+
+    @classmethod
+    def lookup_name(cls, name):
+        """Return the state code corresponding to the given name.
+
+        Raises OMPError if the state name is not recognised.
+
+        Names are compared in a case-insensitive manner.
+        """
+
+        lowername = name.lower()
+
+        for (state, info) in cls._info.items():
+            if lowername == info.name.lower():
+                return state
+
+        raise OMPError('Unknown OMP state name {0}'.format(name))

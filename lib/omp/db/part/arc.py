@@ -232,7 +232,11 @@ class ArcDB(OMPDB):
         Retrive the information required to derive the product ID for
         heterodyne observations.
 
-        Returns a list of (subsysnr, restfreq, bwmode, specid, hybrid) results.
+        Returns a list of (subsysnr, restfreq, bwmode, specid, hybrid,
+        ifchansp) results.
+
+        Note: the 'hybrid' result is actual the count of subsystems: the
+        observation might be a hybrid if hybrid > 1.
         """
 
         if backend == 'ACSIS':
@@ -241,7 +245,8 @@ class ArcDB(OMPDB):
                      '       min(a.restfreq),',
                      '       min(a.bwmode),',
                      '       min(aa.subsysnr),',
-                     '       count(aa.subsysnr)',
+                     '       count(aa.subsysnr),',
+                     '       min(a.ifchansp) ',
                      'FROM ' + self.jcmt_db + 'ACSIS a',
                      '    INNER JOIN ' + self.jcmt_db + 'ACSIS aa',
                      '        ON a.obsid=aa.obsid',

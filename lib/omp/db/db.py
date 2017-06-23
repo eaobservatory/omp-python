@@ -336,44 +336,97 @@ class OMPDB:
             results = OrderedDict( [ [i[0], projobsinfo(*i)] for i in rows] )
         return results
 
-    def get_summary_obs_info(self, queue, semester="%", utdatestart=0, utdateend=50000000):
+    def get_summary_obs_info(self, projectpattern, like=True, utdatestart=None, utdateend=None, csotau=False):
+
         """Get summary of obs info for projects.
 
-        Returns everything for a given queue & semester combo. Uses
-        'like' evalutation for seemester and queue (named country in OMP), so can match
-        everything if needed.
+        Gets the number and duration of observations per project, split
 
-        Gets the number and duration of obsrvations per project, split
         up by omp status, weatherband and instrument.
 
-        """
-        projobsinfo = namedtuple('projobsinfo', 'project instrument band status number totaltime')
+        projectpattern (str): value used in query against COMMON.project
+        like: if to use 'like' project matching or '='
+        utdatestart (int): inclusive start UT date
+        utdateend (int): inclusive end UT date
 
-        query = ("SELECT t.project, t.instrume, t.band, t.commentstatus," \
-                 "       count(*) as numobs, sum(t.duration) as totaltime " \
-                 "FROM ( " \
-                 "      SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration," \
+        csotau (bool): if True, use tau225 header instead of wvmtau header.
+        daytime (str): can be None, 'day', 'night'. nighttime
+           is for obs from 03:30AM to 19:30 UT (5:30PM to 9:30AM HST)
+
+        """
+        projobsinfo = namedtuple('projobsinfo', 'project instrument band status number totaltime daynight')
+
+        args = {}
+        if projectpattern:
+            args['@p'] =  projectpattern
+        datequery = ''
+        if utdatestart:
+            datequery += ' AND utdate >= @s '
+            args['@s'] = utdatestart
+        if utdateend:
+            datequery += ' AND utdate <= @e '
+            args['@e'] = utdateend
+
+
+
+        select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, "
+                 "             CASE WHEN o.commentstatus is NULL "
+                 "                  THEN 0 "
+                 "                  ELSE o.commentstatus "
+                 "             END AS commentstatus, "
+                 "             CASE WHEN (wvmtaust+wvmtauen)/2.0 between 0.005    and 0.05 then '1' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.05 and 0.08 then '2' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.08 and 0.12 then '3' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.12 and 0.2  then '4' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.2  and 100  then '5' "
+                 "                  ELSE 'unknown' "
+                 "             END AS band, "
+                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0 "
+                 "                       between 3.5 and 19.5 THEN 'night' "
+                 "                  ELSE 'day' "
+                 "             END AS daynight "
+                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "
+             )
+
+        if csotau:
+            select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, " \
                  "             CASE WHEN o.commentstatus is NULL "\
                  "                  THEN 0 "\
                  "                  ELSE o.commentstatus "\
                  "             END AS commentstatus, "\
-                 "             CASE WHEN (wvmtaust+wvmtauen)/2.0 between 0    and 0.05 then '1' "\
-                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.05 and 0.08 then '2' "\
-                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.08 and 0.12 then '3' "\
-                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.12 and 0.2  then '4' "\
-                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.2  and 100  then '5' "\
+                 "             CASE WHEN (tau225st+tau225en)/2.0 between 0.005 and 0.05 then '1' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.05 and 0.08 then '2' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.08 and 0.12 then '3' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.12 and 0.2  then '4' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.2  and 100  then '5' "\
                  "                  ELSE 'unknown' "\
-                 "             END AS band "\
+                 "             END AS band, "\
+                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0"
+                 "                       between 3.5 and 19.5 THEN 'night'"\
+                 "                  ELSE 'day' "\
+                 "             END AS daynight "
                  "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "\
-                 "      WHERE c.obsid*=o.obsid AND project in "
-                 "             (SELECT q.projectid FROM omp..ompprojqueue AS q JOIN omp..ompproj AS p ON q.projectid=p.projectid WHERE q.country LIKE @q AND p.semester LIKE @s) "\
-                 "            AND o.obslogid IN (SELECT MAX(obslogid) FROM omp..ompobslog GROUP BY obsid) "\
-                 "            AND utdate>=@d AND utdate <=@e "\
-                 "    ) t "\
-                 "GROUP BY t.project, t.instrume, t.band, t.commentstatus "\
-                 "ORDER BY t.project, t.instrume, t.band ASC, t.commentstatus ASC ")
+             )
 
-        args = {'@q': queue, '@s':semester, '@d': utdatestart, '@e': utdateend }
+        if projectpattern:
+            projectcomparison = ' AND project LIKE @p '
+            if not like:
+                projectcomparison = ' AND project=@p '
+        else:
+            projectcomparison = ""
+
+        where_inner = ("      WHERE c.obsid*=o.obsid "+ projectcomparison +
+                       "            AND o.obslogid IN (SELECT MAX(obslogid) FROM omp..ompobslog GROUP by obsid) "
+                       + datequery
+                   )
+
+        select_outer = ("SELECT t.project, t.instrume, t.band, t.commentstatus, " \
+                 "       count(*) as numobs, sum(t.duration) as totaltime, t.daynight " \
+              )
+        from_outer = " FROM ( " + select_inner + where_inner + " ) t "
+        group_outer = (" GROUP BY t.project, t.instrume, t.band, t.commentstatus, t.daynight "\
+                 "ORDER BY t.project, t.instrume, t.band ASC, t.commentstatus ASC ")
+        query = select_outer + from_outer + group_outer
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

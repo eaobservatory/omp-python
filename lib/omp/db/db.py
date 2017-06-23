@@ -336,6 +336,142 @@ class OMPDB:
             results = OrderedDict( [ [i[0], projobsinfo(*i)] for i in rows] )
         return results
 
+    def create_group_project_query(self, semester=None, queue=None, projects=None, patternmatch=None, telescope='JCMT'):
+        """
+        Create a WHERE selection and a projectID selection from omp..ompproj ASp and omp..ompprojqueue AS q
+
+        Returns a WHERE query list (to be joined with " AND ".join(wherequery), a where args dictionary,
+        and a 'FROM' statement, and a select statement
+
+        Args used are: @queue, @semester, @pattern and @ telescope.
+
+        Not 100% safe for projects, as it formats them directly.
+        """
+        wherequery = []
+        args = {}
+        fromstatement = "FROM omp..ompproj AS p "
+        selectstatement = "SELECT p.projectid "
+        if queue:
+            wherequery += [" q.country=@queue "]
+            args['@queue'] = queue
+            fromstatement += "JOIN omp..ompprojqueue AS q  ON p.projectid=q.projectid "
+
+        if semester:
+            wherequery += [" p.semester=@semester "]
+            args['@semester'] = semester
+
+        if projects:
+            projstring = ", ".join(["'{}'".format(i) for i in projects])
+            wherequery += [" p.projectid in ({}) ".format(projstring)]
+
+        if patternmatch:
+            wherequery += [" p.projectid LIKE @pattern "]
+            args['@pattern'] = patternmatch
+
+        if telescope:
+            wherequery += [" p.telescope=@telescope "]
+            args['@telescope'] = telescope
+
+        return selectstatement, fromstatement, wherequery, args
+
+    def get_summary_obs_info_group(self, semester=None, queue=None, projects=None,
+                                   patternmatch=None,  utdatestart=None, utdateend=None,
+                                   csotau=False):
+
+        """
+        Return summary information about observations for a group of projects.
+        """
+
+        projobsinfo = namedtuple('projobsinfo', 'project instrument band status number totaltime daynight')
+        # First select groups of projects
+
+        if semester or queue or projects or patternmatch:
+            selectstatement, fromstatement, wherelist, args = self.create_group_project_query(
+                semester=semester, queue=queue, projects=projects, patternmatch=patternmatch,
+                telescope='JCMT')
+            where = ' WHERE ' + ' AND '.join(wherelist)
+            projectselect = " AND project in ({} {} {}) ".format(selectstatement, fromstatement, where)
+            projectselect = "{} {} {} ".format(selectstatement, fromstatement, where)
+            with self.db.transaction(read_write=False) as c:
+                c.execute(projectselect, args)
+                projects = c.fetchall()
+            projects = [i[0] for i in projects]
+            projectselect = " AND project in (" + ', '.join(["'" + p + "'" for p in projects]) +") "
+            args = {}
+        else:
+            projectselect = ""
+            args = {}
+        datequery = ''
+        if utdatestart:
+            datequery += ' AND utdate >= @datestart '
+            args['@datestart'] = utdatestart
+        if utdateend:
+            datequery += ' AND utdate <= @dateend '
+            args['@dateeend'] = utdateend
+
+
+        select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, "
+                 "             CASE WHEN o.commentstatus is NULL "
+                 "                  THEN 0 "
+                 "                  ELSE o.commentstatus "
+                 "             END AS commentstatus, "
+                 "             CASE WHEN (wvmtaust+wvmtauen)/2.0 between 0.005    and 0.05 then '1' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.05 and 0.08 then '2' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.08 and 0.12 then '3' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.12 and 0.2  then '4' "
+                 "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.2  and 100  then '5' "
+                 "                  ELSE 'unknown' "
+                 "             END AS band, "
+                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0 "
+                 "                       between 3.5 and 19.5 THEN 'night' "
+                 "                  ELSE 'day' "
+                 "             END AS daynight "
+                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "
+             )
+
+        if csotau:
+            select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, " \
+                 "             CASE WHEN o.commentstatus is NULL "\
+                 "                  THEN 0 "\
+                 "                  ELSE o.commentstatus "\
+                 "             END AS commentstatus, "\
+                 "             CASE WHEN (tau225st+tau225en)/2.0 between 0.005 and 0.05 then '1' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.05 and 0.08 then '2' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.08 and 0.12 then '3' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.12 and 0.2  then '4' "\
+                 "                  WHEN (tau225st+tau225en)/2.0 between 0.2  and 100  then '5' "\
+                 "                  ELSE 'unknown' "\
+                 "             END AS band, "\
+                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0"
+                 "                       between 3.5 and 19.5 THEN 'night'"\
+                 "                  ELSE 'day' "\
+                 "             END AS daynight "
+                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "\
+             )
+
+        where_inner = ("      WHERE c.obsid*=o.obsid "+ projectselect +
+                       "       AND o.obslogid IN (SELECT MAX(obslogid) FROM omp..ompobslog GROUP by obsid) "
+                       + datequery
+                   )
+
+        select_outer = ("SELECT t.project, t.instrume, t.band, t.commentstatus, " \
+                 "       count(*) as numobs, sum(t.duration) as totaltime, t.daynight " \
+              )
+
+        from_outer = " FROM ( " + select_inner + where_inner + " ) t "
+        group_outer = (" GROUP BY t.project, t.instrume, t.band, t.commentstatus, t.daynight "\
+                 "ORDER BY t.project, t.instrume, t.band ASC, t.commentstatus ASC ")
+        query = select_outer + from_outer + group_outer
+        print(select_outer)
+        print(from_outer)
+        print(group_outer)
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [projobsinfo(*i) for i in rows]
+
+        return results
+
     def get_summary_obs_info(self, projectpattern, like=True, utdatestart=None, utdateend=None, csotau=False):
 
         """Get summary of obs info for projects.
@@ -435,6 +571,52 @@ class OMPDB:
 
         return results
 
+    def get_summary_msb_info_group(self, semester=None, queue=None, projects=None, patternmatch=None):
+        """Get overview of the msbs waiting to be observed for a group of projects.
+
+        Projects determined by semester, queue, list of project ids,
+        and/or a patternmatch (including the wildcards,
+        e.g. patternmatch='%EC%').  All constraints are combined with
+        an AND.
+
+        Returns a list of namedtuples, each namedtuple represents the
+        summary for one project that matches the constraints.
+
+        """
+        if semester or queue:
+            selectstatement, fromstatement, wherelist, args = self.create_group_project_query(
+                semester=semester, queue=queue, projects=projects, patternmatch=patternmatch,
+                telescope='JCMT')
+            where = ' WHERE ' + ' AND '.join(wherelist)
+            projectselect = " o.projectid in ({} {} {}) ".format(selectstatement, fromstatement, where)
+
+        else:
+            projectselect = []
+            args = {}
+            if projects:
+                projectselect += ["o.projectid in (" + ','.join(["'" + p + "'" for p in projects]) + ')']
+            if patternmatch:
+                projectselect += ["o.projectid like @pattern"]
+                args['@pattern'] = patternmatch
+            projectselect = ' AND ' .join(projectselect)
+        projmsbinfo = namedtuple('projmsbinfo', 'project uniqmsbs totalmsbs totaltime taumin taumax')
+        query = ("SELECT o.projectid, count(*), sum(o.remaining), "\
+                 "       sum(o.timeest*o.remaining), o.taumin, o.taumax "\
+                 "FROM omp..ompmsb as o ")
+        where = " WHERE o.remaining > 0 "
+        where += " AND " + projectselect
+        group = " GROUP BY o.taumin, o.taumax, o.projectid ORDER BY o.projectid, o.taumin, o.taumax"
+
+        query += where
+        query += group
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [projmsbinfo(*i) for i in rows]
+
+        return results
+
     def get_summary_msb_info(self, projectpattern):
         """Get overview of the msbs waiting to be observed.
 
@@ -460,6 +642,63 @@ class OMPDB:
 
         return results
 
+    def get_time_charged_group(self, semester=None, queue=None, projects=None,
+                               patternmatch=None, telescope='JCMT'):
+        """
+        Return time charged per day by project.
+
+        Project constraints are combined with an AND.
+
+        Returns Dictionary, key being a project code, value being a
+        list of namedtuples, orderd by Dated.
+
+        """
+        query = ("SELECT t.projectid, t.date, t.timespent, t.confirmed FROM omp..omptimeacct AS  t "
+                 " JOIN omp..ompproj AS p ON t.projectid=p.projectid "
+                 " JOIN omp..ompprojqueue AS q ON t.projectid=q.projectid ")
+        args = {}
+        wherequery = []
+
+        if queue:
+            wherequery += [" q.country=@q "]
+            args['@q'] = queue
+
+        if semester:
+            wherequery += [" p.semester=@sem "]
+            args['@sem'] = semester
+        if projects:
+            projstring = ", ".join(["'{}'".format(i) for i in projects])
+            wherequery += [" p.projectid in ({}) ".format(projstring)]
+
+        if patternmatch:
+            wherequery += [" p.projectid LIKE @pattern "]
+            args['@pattern'] = patternmatch
+
+        if telescope:
+            wherequery += [" p.telescope=@telescope "]
+            args['@telescope'] = telescope
+
+        query += " WHERE " + " AND ".join(wherequery)
+
+        query += " ORDER BY t.date ASC "
+
+        timeinfo = namedtuple('timeinfo', 'date timespent confirmed')
+
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+
+        # Sort out the rows
+        projects = set([i[0] for i in rows])
+        results = {}
+        for r in rows:
+            p = r[0]
+            vals = r[1:]
+            info  = timeinfo( *vals )
+            results[p] = results.get(p, []) + [info]
+
+        return results
+
     def get_time_charged_project_info(self, projectcode):
         """
         Get time charged per day for a project.
@@ -479,6 +718,43 @@ class OMPDB:
             results = [timeinfo(*i) for i in rows]
         return results
 
+
+    def get_fault_summary_group(self, semester=None, queue=None, projects=None, patternmatch=None):
+        """
+        Get summary of faults for a group of projects.
+
+        All project constraints are combined with an AND.
+
+        Returns list of faultinfo object, one per project found.
+        """
+        if semester or queue:
+            selectstatement, fromstatement, wherelist, args = self.create_group_project_query(
+                semester=semester, queue=queue, projects=projects, patternmatch=patternmatch,
+                telescope='JCMT')
+            where = ' WHERE ' + ' AND '.join(wherelist)
+            projectselect = " a.projectid in ({} {} {}) ".format(selectstatement, fromstatement, where)
+
+        else:
+            projectselect = []
+            args = {}
+            if projects:
+                projectselect += ["a.projectid in (" + ','.join(["'" + p + "'" for p in projects]) + ')']
+            if patternmatch:
+                projectselect += ["a.projectid like @pattern"]
+                args['@pattern'] = patternmatch
+            projectselect = ' AND ' .join(projectselect)
+
+        query = ("SELECT a.projectid, f.faultid, f.status, f.subject "\
+                 "FROM omp..ompfaultassoc as a JOIN omp..ompfault as f "\
+                 "ON a.faultid = f.faultid ")
+        query += " WHERE {}".format(projectselect)
+
+        faultinfo = namedtuple('faultinfo', 'project faultid status subject')
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [faultinfo(*i) for i in rows]
+        return results
 
 
     def get_fault_summary(self, projectpattern):
@@ -503,6 +779,32 @@ class OMPDB:
             c.execute(query, args)
             rows = c.fetchall()
             results = [faultinfo(*i) for i in rows]
+        return results
+
+    def get_allocations(self, semester=None, queue=None, projects=None, patternmatch=None, telescope='JCMT'):
+        """
+        Return allocation information for a group of projects.
+
+        """
+        allocinfo = namedtuple('allocinfo',
+                               'pi title semester allocated remaining pending taumin taumax priority enabled')
+
+        selectstatement, fromstatement, wherequery, args = self.create_group_project_query(
+            semester=semester, queue=queue, projects=projects, patternmatch=patternmatch,
+            telescope=telescope)
+
+        query = ("SELECT p.projectid, p.pi, p.title, p.semester, p.allocated, p.remaining, "
+                 "p.pending, p.taumin, p.taumax, q.tagpriority, p.state FROM omp..ompproj AS p "
+                 " JOIN omp..ompprojqueue  AS q ON p.projectid=q.projectid ")
+
+        query += " WHERE " + " AND ".join(wherequery)
+        query += " ORDER BY q.tagpriority"
+
+        with  self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+
+            results = OrderedDict([[i[0], allocinfo(*i[1:])] for i in rows])
         return results
 
     def get_allocation_project(self, projectcode, like=None):

@@ -66,20 +66,23 @@ class OMPDB:
 
         return self.CommonInfo(*rows[0])
 
-    def get_obsid_status(self, obsid):
+    def get_obsid_status(self, obsid, comment=False):
         """Retrieve the last comment status for a given obsid.
+
+        If comment = True: also retrieve the last obsid comment.
 
         Returns None if no status was found.
         """
-
-        with self.db.transaction() as c:
-            c.execute(
-                'SELECT commentstatus FROM omp..ompobslog '
+        query = ('SELECT commentstatus FROM omp..ompobslog '
                 'WHERE obslogid = '
                 '(SELECT MAX(obslogid) FROM omp..ompobslog '
-                'WHERE obsid=@o AND obsactive=1)',
-                {'@o': obsid})
+                'WHERE obsid=@o AND obsactive=1)')
+        args = {'@o': obsid}
+        if comment:
+            query = query.replace('commentstatus', 'commentstatus, commenttext, commentauthor, commentdate')
 
+        with self.db.transaction() as c:
+            c.execute(query, args)
             rows = c.fetchall()
 
         if not rows:
@@ -88,7 +91,10 @@ class OMPDB:
         if len(rows) > 1:
             raise OMPDBError('multiple status results for one obsid')
 
-        return rows[0][0]
+        if not comment:
+            return rows[0][0]
+        else:
+            return rows[0]
 
     def find_obs_for_ingestion(self, utdate_start, utdate_end=None,
                                no_status_check=False, no_transfer_check=False):

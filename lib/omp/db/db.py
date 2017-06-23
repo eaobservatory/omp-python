@@ -24,6 +24,10 @@ from pytz import UTC
 from omp.db.backend.sybase import OMPSybaseLock
 from omp.error import OMPDBError
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 class OMPDB:
     """OMP and JCMT database access class.
     """
@@ -281,7 +285,9 @@ class OMPDB:
 
         return rows
 
-    def get_observations_from_project(self, projectcode, utdatestart=None, utdateend=None, instrument=None):
+    def get_observations_from_project(self, projectcode,
+                                      utdatestart=None, utdateend=None, instrument=None,
+                                      ompstatus=None):
         """Get information about a project's observations.
 
         This is designed for getting summary information for
@@ -301,7 +307,8 @@ class OMPDB:
         """
 
         query = ("SELECT c.obsid, instrume, c.wvmtaust, c.wvmtauen, c.utdate, c.obsnum, c.object,"
-                 " datediff(second, c.date_obs, c.date_end) as time, o.commentstatus, o.commenttext"
+                 " datediff(second, c.date_obs, c.date_end) as time, o.commentstatus, o.commenttext,"
+                 " c.req_mintau, c.req_maxtau "
                  " FROM jcmt..COMMON as c join omp..ompobslog as o"
                  " ON  c.obsid=o.obsid"
                  " WHERE project=@p"
@@ -322,12 +329,15 @@ class OMPDB:
             query += ' AND utdate <= @e'
             args['@e'] = utdateend
 
-
+        if ompstatus:
+            query += ' AND o.commentstatus = @c'
+            args['@c'] = ompstatus
         # Order by date.
         query += ' ORDER BY c.utdate ASC '
 
         projobsinfo = namedtuple('projobsinfo',
-            'obsid instrument wvmtaust wvmtauen utdate obsnum object duration status commenttext')
+            'obsid instrument wvmtaust wvmtauen utdate obsnum object duration '
+            'status commenttext req_mintau req_maxtau')
 
         # Carry out query
         with self.db.transaction(read_write=False) as c:
@@ -621,7 +631,7 @@ class OMPDB:
         """Get overview of the msbs waiting to be observed.
 
         Returns a list of namedtuples, each namedtuple represents the
-        summary for one project that matches the projectpattern.
+        summary for one tau range for one project that matches the projectpattern.
 
         """
         projmsbinfo = namedtuple('projmsbinfo', 'project uniqmsbs totalmsbs totaltime taumin taumax')
@@ -821,7 +831,7 @@ class OMPDB:
 
         allocinfo = namedtuple('allocinfo', 'pi title semester allocated remaining pending taumin taumax')
 
-        query = ("SELECT projectid, pi, title, semester, allocated, remaining, pending, taumin, taumax "
+        query = ("SELECT projectid, pi, title, semester, allocated, remaining, pending, taumin, taumax"
                  " FROM omp..ompproj")
 
         if like:
@@ -844,7 +854,7 @@ class OMPDB:
         """
         Get COI and PI cadcusernames for all projects.
 
-        Excludes semester='MEGA' and semester='JAC'.
+        Excludes semester='MEGA' and semesters='JAC' or 'EAO'.
 
         Returns a list of namedtuples, giving the projectid, the cadc
         username and the capacity (i.e. COI or PI).
@@ -860,7 +870,7 @@ class OMPDB:
             "  AND (a.capacity = 'PI' OR a.capacity = 'COI') "\
             "  AND a.projectid IN "\
             "(SELECT projectid from omp..ompproj "\
-            "  WHERE telescope=@t AND semester !='MEGA' AND semester !='JAC')"\
+            "  WHERE telescope=@t AND semester !='MEGA' AND semester !='JAC' AND semester != 'EAO')"\
             "ORDER BY a.projectid, b.cadcuser")
         args={'@t': telescope}
 

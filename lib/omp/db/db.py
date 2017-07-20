@@ -306,12 +306,13 @@ class OMPDB:
 
         """
 
-        query = ("SELECT c.obsid, instrume, c.wvmtaust, c.wvmtauen, c.utdate, c.obsnum, c.object,"
+        query = ("SELECT c.obsid, "
+                 "  CASE WHEN c.recipe='REDUCE_POL_SCAN' THEN 'POL-2' ELSE c.instrume END AS instrume, "
+                 " c.wvmtaust, c.wvmtauen, c.utdate, c.obsnum, c.object,"
                  " datediff(second, c.date_obs, c.date_end) as time, o.commentstatus, o.commenttext,"
                  " c.req_mintau, c.req_maxtau "
-                 " FROM jcmt..COMMON as c join omp..ompobslog as o"
-                 " ON  c.obsid=o.obsid"
-                 " WHERE project=@p"
+                 " FROM jcmt..COMMON as c, omp..ompobslog as o"
+                 " WHERE project=@p AND c.obsid*=o.obsid "
                  " AND obslogid in (SELECT MAX(obslogid) FROM omp..ompobslog GROUP BY obsid)")
 
         args = {'@p': str(projectcode).upper()}
@@ -420,7 +421,10 @@ class OMPDB:
             args['@dateeend'] = utdateend
 
 
-        select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, "
+        select_inner = ("SELECT c.project, "
+                 "             CASE WHEN c.recipe='REDUCE_POL_SCAN' THEN 'POL-2' ELSE c.instrume "
+                 "             END AS instrume, "
+                 "             datediff(second, c.date_obs, c.date_end) as duration, "
                  "             CASE WHEN o.commentstatus is NULL "
                  "                  THEN 0 "
                  "                  ELSE o.commentstatus "

@@ -371,7 +371,7 @@ class OMPDB:
             wherequery += [" p.semester=@semester "]
             args['@semester'] = semester
 
-        if projects:
+        if projects is not None and projects != []:
             projstring = ", ".join(["'{}'".format(i) for i in projects])
             wherequery += [" p.projectid in ({}) ".format(projstring)]
 
@@ -396,7 +396,7 @@ class OMPDB:
         projobsinfo = namedtuple('projobsinfo', 'project instrument band status number totaltime daynight')
         # First select groups of projects
 
-        if semester or queue or projects or patternmatch:
+        if semester is not None or queue is not None  or projects is not None or patternmatch is not None:
             selectstatement, fromstatement, wherelist, args = self.create_group_project_query(
                 semester=semester, queue=queue, projects=projects, patternmatch=patternmatch,
                 telescope='JCMT')

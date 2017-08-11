@@ -101,7 +101,8 @@ class OMPDB:
             return rows[0]
 
     def find_obs_for_ingestion(self, utdate_start, utdate_end=None,
-                               no_status_check=False, no_transfer_check=False):
+                               no_status_check=False, no_transfer_check=False,
+                               ignore_instruments=None):
         """Find (raw) observations which are due for ingestion into CAOM-2.
 
         This method searches for observations matching these criteria:
@@ -137,6 +138,11 @@ class OMPDB:
         if utdate_end is not None:
             args['@ue'] = utdate_end
             where.append('(utdate <= @ue)')
+
+        # Apply instrument constraint.
+        if ignore_instruments:
+            where.append('(instrume not in ({}))'.format(', '.join(
+                ['"{}"'.format(x) for x in ignore_instruments])))
 
         # Check the observation is finished.  (Started >= 4 hours ago.)
         where.append('(DATEDIFF(hh, date_obs, GETUTCDATE()) >= 4)')

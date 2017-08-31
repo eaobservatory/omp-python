@@ -50,9 +50,9 @@ class TLEDB(object):
             logger.debug('Inserting new omptle row: %s', repr(tle))
             cursor.execute("""
                             INSERT INTO omp..omptle
-                            (target, el1, el2, el3, el4, el5, el6, el7, el8)
+                            (target, el1, el2, el3, el4, el5, el6, el7, el8, retrieved)
                             VALUES
-                            (@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8)
+                            (@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8, getdate())
                            """,
                            {
                                '@target': tle["target"],

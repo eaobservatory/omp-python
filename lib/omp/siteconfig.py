@@ -1,4 +1,5 @@
 # Copyright (C) 2014 Science and Technology Facilities Council.
+# Copyright (C) 2017 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,8 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from ConfigParser import SafeConfigParser
+import os
 
-site_config_file = '/jac_sw/etc/ompsite.cfg'
+default_site_config_file = '/jac_sw/etc/ompsite.cfg'
 
 
 def get_omp_siteconfig():
@@ -25,6 +27,9 @@ def get_omp_siteconfig():
     """
 
     config = SafeConfigParser()
+
+    site_config_file = os.environ.get(
+        'OMP_SITE_CONFIG', default_site_config_file)
 
     config.read(site_config_file)
 

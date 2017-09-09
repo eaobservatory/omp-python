@@ -47,7 +47,7 @@ class TLEDB(object):
         """Takes tle and submits it into omp db"""
         with self.db.transaction(read_write=True) as cursor:
             logger.debug('Deleting old omptle row for "%s"', tle['target'])
-            cursor.execute("DELETE FROM omp..omptle WHERE target=@target",
+            cursor.execute("DELETE FROM omp.omptle WHERE target=@target",
                            {
                                '@target': tle["target"]
                            }
@@ -55,7 +55,7 @@ class TLEDB(object):
 
             logger.debug('Inserting new omptle row: %s', repr(tle))
             cursor.execute("""
-                            INSERT INTO omp..omptle
+                            INSERT INTO omp.omptle
                             (target, el1, el2, el3, el4, el5, el6, el7, el8, retrieved)
                             VALUES
                             (@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8, getdate())
@@ -78,14 +78,14 @@ class TLEDB(object):
             if include_removed:
                 logger.debug('Retrieving list of distinct AUTO-TLE targets from ompobs')
                 cursor.execute(
-                    'SELECT DISTINCT target FROM omp..ompobs'
+                    'SELECT DISTINCT target FROM omp.ompobs'
                     ' WHERE coordstype="AUTO-TLE"')
             else:
                 logger.debug('Retrieving list of distinct AUTO-TLE targets from ompobs'
                              ' but only from MSBs with repeats remaining')
                 cursor.execute(
-                    'SELECT DISTINCT target FROM omp..ompobs'
-                    ' JOIN omp..ompmsb ON omp..ompobs.msbid = omp..ompmsb.msbid'
+                    'SELECT DISTINCT target FROM omp.ompobs'
+                    ' JOIN omp.ompmsb ON omp.ompobs.msbid = omp.ompmsb.msbid'
                     ' WHERE coordstype="AUTO-TLE"'
                     ' AND remaining > 0')
             rows = cursor.fetchall()
@@ -98,7 +98,7 @@ class TLEDB(object):
         with self.db.transaction(read_write=True) as cursor:
             logger.debug('Updating ompobs with: %s', repr(tle))
             cursor.execute("""
-                            UPDATE omp..ompobs SET
+                            UPDATE omp.ompobs SET
                             el1=@el1, el2=@el2, el3=@el3, el4=@el4,
                             el5=@el5, el6=@el6, el7=@el7, el8=@el8
                             WHERE coordstype="AUTO-TLE" AND target=@target

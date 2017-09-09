@@ -30,8 +30,8 @@ class ArcDB(OMPDB):
             password=config.get('hdr_database', 'password'),
             read_only=True)
 
-        self.jcmt_db = 'jcmt..'
-        self.omp_db = 'omp..'
+        self.jcmt_db = 'jcmt.'
+        self.omp_db = 'omp.'
 
     def read(self, query, params={}):
         """
@@ -88,8 +88,8 @@ class ArcDB(OMPDB):
             'SELECT ',
             '    ou.uname,',
             '    op.title',
-            'FROM omp..ompproj op',
-            '    LEFT JOIN omp..ompuser ou'
+            'FROM omp.ompproj op',
+            '    LEFT JOIN omp.ompuser ou'
             '        ON op.pi=ou.userid AND ou.obfuscated=0',
             'WHERE op.projectid="%s"' % (project_id,)])
         answer = self.read(sqlcmd)
@@ -421,14 +421,14 @@ class ArcDB(OMPDB):
             condition = ''
 
         if needs_acsis:
-            extra_table = ' LEFT JOIN jcmt..ACSIS ON ' \
-                'jcmt..COMMON.obsid=jcmt..ACSIS.obsid'
+            extra_table = ' LEFT JOIN jcmt.ACSIS ON ' \
+                'jcmt.COMMON.obsid=jcmt.ACSIS.obsid'
         else:
             extra_table = ''
 
         with self.db.transaction() as c:
             c.execute('SELECT ' + ', '.join(fields) +
-                      ' FROM jcmt..COMMON' + extra_table + condition,
+                      ' FROM jcmt.COMMON' + extra_table + condition,
                       params)
 
             return c.fetchall()

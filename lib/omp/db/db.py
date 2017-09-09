@@ -51,7 +51,7 @@ class OMPDB:
 
         with self.db.transaction() as c:
             c.execute(
-                'SELECT * FROM jcmt..COMMON WHERE obsid=@o',
+                'SELECT * FROM jcmt.COMMON WHERE obsid=@o',
                 {'@o': obsid})
 
             rows = c.fetchall()
@@ -78,9 +78,9 @@ class OMPDB:
 
         Returns None if no status was found.
         """
-        query = ('SELECT commentstatus FROM omp..ompobslog '
+        query = ('SELECT commentstatus FROM omp.ompobslog '
                 'WHERE obslogid = '
-                '(SELECT MAX(obslogid) FROM omp..ompobslog '
+                '(SELECT MAX(obslogid) FROM omp.ompobslog '
                 'WHERE obsid=@o AND obsactive=1)')
         args = {'@o': obsid}
         if comment:
@@ -157,20 +157,20 @@ class OMPDB:
         if not no_status_check:
             status_condition.append(
                             '(last_caom_mod < (SELECT MAX(commentdate)'
-                                ' FROM omp..ompobslog AS o'
+                                ' FROM omp.ompobslog AS o'
                                 ' WHERE o.obsid=c.obsid))')
         where.append('(' + ' OR '.join(status_condition) + ')')
 
         # Check that all files have been transferred.
         if not no_transfer_check:
-            where.append('(SELECT COUNT(*) FROM jcmt..FILES AS f'
-                            ' JOIN jcmt..transfer AS t'
+            where.append('(SELECT COUNT(*) FROM jcmt.FILES AS f'
+                            ' JOIN jcmt.transfer AS t'
                             ' ON f.file_id=t.file_id'
                             ' WHERE f.obsid=c.obsid'
                                 ' AND t.status NOT IN ("t", "d", "D", "z"))'
                             ' = 0')
 
-        query = 'SELECT obsid FROM jcmt..COMMON AS c WHERE ' + ' AND '.join(where)
+        query = 'SELECT obsid FROM jcmt.COMMON AS c WHERE ' + ' AND '.join(where)
         result = []
 
         with self.db.transaction() as c:
@@ -196,7 +196,7 @@ class OMPDB:
         than being set to the current date and time.
         """
 
-        query = 'UPDATE jcmt..COMMON SET last_caom_mod = ' + \
+        query = 'UPDATE jcmt.COMMON SET last_caom_mod = ' + \
             ('NULL' if set_null else 'GETUTCDATE()') + \
             ' WHERE obsid=@o'
         args = {'@o': obsid}
@@ -233,7 +233,7 @@ class OMPDB:
 
         """
 
-        query = ('SELECT obsid FROM jcmt..COMMON WHERE utdate>=@s AND '
+        query = ('SELECT obsid FROM jcmt.COMMON WHERE utdate>=@s AND '
                  ' utdate <=@e ')
         args = {'@s': utstart, '@e': utend}
 
@@ -259,7 +259,7 @@ class OMPDB:
 
         This takes a start utdate and end utdate (can be the same to
         limit search to one day) and finds all obsids and their releasedates
-        from jcmt..COMMON. Instrument search is not case sensitive.
+        from jcmt.COMMON. Instrument search is not case sensitive.
 
         Can optionally be limited by instrument name (based on INSTRUME column)
 
@@ -274,7 +274,7 @@ class OMPDB:
 
         """
 
-        query = ('SELECT obsid, release_date FROM jcmt..COMMON WHERE utdate>=@s AND '
+        query = ('SELECT obsid, release_date FROM jcmt.COMMON WHERE utdate>=@s AND '
                  ' utdate <=@e ')
         args = {'@s': utstart, '@e': utend}
 
@@ -318,9 +318,9 @@ class OMPDB:
                  " c.wvmtaust, c.wvmtauen, c.utdate, c.obsnum, c.object,"
                  " datediff(second, c.date_obs, c.date_end) as time, o.commentstatus, o.commenttext,"
                  " c.req_mintau, c.req_maxtau "
-                 " FROM jcmt..COMMON as c, omp..ompobslog as o"
+                 " FROM jcmt.COMMON as c, omp.ompobslog as o"
                  " WHERE project=@p AND c.obsid*=o.obsid "
-                 " AND obslogid in (SELECT MAX(obslogid) FROM omp..ompobslog GROUP BY obsid)")
+                 " AND obslogid in (SELECT MAX(obslogid) FROM omp.ompobslog GROUP BY obsid)")
 
         args = {'@p': str(projectcode).upper()}
 
@@ -356,7 +356,7 @@ class OMPDB:
 
     def create_group_project_query(self, semester=None, queue=None, projects=None, patternmatch=None, telescope='JCMT'):
         """
-        Create a WHERE selection and a projectID selection from omp..ompproj ASp and omp..ompprojqueue AS q
+        Create a WHERE selection and a projectID selection from omp.ompproj ASp and omp.ompprojqueue AS q
 
         Returns a WHERE query list (to be joined with " AND ".join(wherequery), a where args dictionary,
         and a 'FROM' statement, and a select statement
@@ -367,12 +367,12 @@ class OMPDB:
         """
         wherequery = []
         args = {}
-        fromstatement = "FROM omp..ompproj AS p "
+        fromstatement = "FROM omp.ompproj AS p "
         selectstatement = "SELECT p.projectid "
         if queue:
             wherequery += [" q.country=@queue "]
             args['@queue'] = queue
-            fromstatement += "JOIN omp..ompprojqueue AS q  ON p.projectid=q.projectid "
+            fromstatement += "JOIN omp.ompprojqueue AS q  ON p.projectid=q.projectid "
 
         if semester:
             wherequery += [" p.semester=@semester "]
@@ -447,7 +447,7 @@ class OMPDB:
                  "                       between 3.5 and 19.5 THEN 'night' "
                  "                  ELSE 'day' "
                  "             END AS daynight "
-                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "
+                 "      FROM jcmt.COMMON AS c, omp.ompobslog AS o "
              )
 
         if csotau:
@@ -467,11 +467,11 @@ class OMPDB:
                  "                       between 3.5 and 19.5 THEN 'night'"\
                  "                  ELSE 'day' "\
                  "             END AS daynight "
-                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "\
+                 "      FROM jcmt.COMMON AS c, omp.ompobslog AS o "\
              )
 
         where_inner = ("      WHERE c.obsid*=o.obsid "+ projectselect +
-                       "       AND o.obslogid IN (SELECT MAX(obslogid) FROM omp..ompobslog GROUP by obsid) "
+                       "       AND o.obslogid IN (SELECT MAX(obslogid) FROM omp.ompobslog GROUP by obsid) "
                        + datequery
                    )
 
@@ -542,7 +542,7 @@ class OMPDB:
                  "                       between 3.5 and 19.5 THEN 'night' "
                  "                  ELSE 'day' "
                  "             END AS daynight "
-                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "
+                 "      FROM jcmt.COMMON AS c, omp.ompobslog AS o "
              )
 
         if csotau:
@@ -562,7 +562,7 @@ class OMPDB:
                  "                       between 3.5 and 19.5 THEN 'night'"\
                  "                  ELSE 'day' "\
                  "             END AS daynight "
-                 "      FROM jcmt..COMMON AS c, omp..ompobslog AS o "\
+                 "      FROM jcmt.COMMON AS c, omp.ompobslog AS o "\
              )
 
         if projectpattern:
@@ -573,7 +573,7 @@ class OMPDB:
             projectcomparison = ""
 
         where_inner = ("      WHERE c.obsid*=o.obsid "+ projectcomparison +
-                       "            AND o.obslogid IN (SELECT MAX(obslogid) FROM omp..ompobslog GROUP by obsid) "
+                       "            AND o.obslogid IN (SELECT MAX(obslogid) FROM omp.ompobslog GROUP by obsid) "
                        + datequery
                    )
 
@@ -623,7 +623,7 @@ class OMPDB:
         projmsbinfo = namedtuple('projmsbinfo', 'project uniqmsbs totalmsbs totaltime taumin taumax')
         query = ("SELECT o.projectid, count(*), sum(o.remaining), "\
                  "       sum(o.timeest*o.remaining), o.taumin, o.taumax "\
-                 "FROM omp..ompmsb as o ")
+                 "FROM omp.ompmsb as o ")
         where = " WHERE o.remaining > 0 "
         where += " AND " + projectselect
         group = " GROUP BY o.taumin, o.taumax, o.projectid ORDER BY o.projectid, o.taumin, o.taumax"
@@ -649,7 +649,7 @@ class OMPDB:
 
         query = ("SELECT o.projectid, count(*), sum(o.remaining), "\
                  "       sum(o.timeest*o.remaining), o.taumin, o.taumax "\
-                 "FROM omp..ompmsb as o "\
+                 "FROM omp.ompmsb as o "\
                  "WHERE o.projectid LIKE @p AND o.remaining > 0 "\
                  "GROUP BY o.taumin, o.taumax, o.projectid "\
                  "ORDER BY o.projectid, o.taumin, o.taumax ")
@@ -674,9 +674,9 @@ class OMPDB:
         list of namedtuples, orderd by Dated.
 
         """
-        query = ("SELECT t.projectid, t.date, t.timespent, t.confirmed FROM omp..omptimeacct AS  t "
-                 " JOIN omp..ompproj AS p ON t.projectid=p.projectid "
-                 " JOIN omp..ompprojqueue AS q ON t.projectid=q.projectid ")
+        query = ("SELECT t.projectid, t.date, t.timespent, t.confirmed FROM omp.omptimeacct AS  t "
+                 " JOIN omp.ompproj AS p ON t.projectid=p.projectid "
+                 " JOIN omp.ompprojqueue AS q ON t.projectid=q.projectid ")
         args = {}
         wherequery = []
 
@@ -727,7 +727,7 @@ class OMPDB:
         Returns list of namedtuples, ordered by date.
         """
 
-        query = "SELECT date, timespent, confirmed from omp..omptimeacct WHERE projectid=@p ORDER BY date ASC"
+        query = "SELECT date, timespent, confirmed from omp.omptimeacct WHERE projectid=@p ORDER BY date ASC"
         args = {'@p': projectcode}
 
         timeinfo = namedtuple('timeinfo', 'date timespent confirmed')
@@ -766,7 +766,7 @@ class OMPDB:
             projectselect = ' AND ' .join(projectselect)
 
         query = ("SELECT a.projectid, f.faultid, f.status, f.subject "\
-                 "FROM omp..ompfaultassoc as a JOIN omp..ompfault as f "\
+                 "FROM omp.ompfaultassoc as a JOIN omp.ompfault as f "\
                  "ON a.faultid = f.faultid ")
         query += " WHERE {}".format(projectselect)
 
@@ -791,7 +791,7 @@ class OMPDB:
 
         """
         query = ("SELECT a.projectid, f.faultid, f.status, f.subject "\
-                 "FROM omp..ompfaultassoc as a JOIN omp..ompfault as f "\
+                 "FROM omp.ompfaultassoc as a JOIN omp.ompfault as f "\
                  "ON a.faultid = f.faultid "\
                  "WHERE a.projectid LIKE @p")
         args = {'@p': projectpattern.lower()}
@@ -815,8 +815,8 @@ class OMPDB:
             telescope=telescope)
 
         query = ("SELECT p.projectid, p.pi, p.title, p.semester, p.allocated, p.remaining, "
-                 "p.pending, p.taumin, p.taumax, q.tagpriority, p.state FROM omp..ompproj AS p "
-                 " JOIN omp..ompprojqueue  AS q ON p.projectid=q.projectid ")
+                 "p.pending, p.taumin, p.taumax, q.tagpriority, p.state FROM omp.ompproj AS p "
+                 " JOIN omp.ompprojqueue  AS q ON p.projectid=q.projectid ")
 
         query += " WHERE " + " AND ".join(wherequery)
         query += " ORDER BY q.tagpriority"
@@ -843,7 +843,7 @@ class OMPDB:
         allocinfo = namedtuple('allocinfo', 'pi title semester allocated remaining pending taumin taumax')
 
         query = ("SELECT projectid, pi, title, semester, allocated, remaining, pending, taumin, taumax"
-                 " FROM omp..ompproj")
+                 " FROM omp.ompproj")
 
         if like:
             query += ' WHERE projectid LIKE @p '
@@ -876,11 +876,11 @@ class OMPDB:
 
         query=(
             "SELECT a.projectid, b.cadcuser, a.capacity "\
-            "FROM omp..ompprojuser as a JOIN omp..ompuser AS b ON a.userid=b.userid "\
+            "FROM omp.ompprojuser as a JOIN omp.ompuser AS b ON a.userid=b.userid "\
             "WHERE b.cadcuser IS NOT NULL "\
             "  AND (a.capacity = 'PI' OR a.capacity = 'COI') "\
             "  AND a.projectid IN "\
-            "(SELECT projectid from omp..ompproj "\
+            "(SELECT projectid from omp.ompproj "\
             "  WHERE telescope=@t AND semester !='MEGA' AND semester !='JAC' AND semester != 'EAO')"\
             "ORDER BY a.projectid, b.cadcuser")
         args={'@t': telescope}
@@ -898,7 +898,7 @@ class OMPDB:
         Returns a list of projectids as strings.
         """
 
-        query = ("SELECT projectid FROM omp..ompproj WHERE semester=@s AND telescope=@t")
+        query = ("SELECT projectid FROM omp.ompproj WHERE semester=@s AND telescope=@t")
         args = {'@s': semester, '@t': telescope}
 
         with self.db.transaction(read_write=False) as c:
@@ -936,7 +936,7 @@ class OMPDB:
         with self.db.transaction(read_write=False) as c:
             for table in tables:
                 c.execute(
-                    'SELECT COUNT(*) FROM omp..{} WHERE projectid=@n'.format(table),
+                    'SELECT COUNT(*) FROM omp.{} WHERE projectid=@n'.format(table),
                     {'@n': project_new})
 
                 n_existing = c.fetchall()[0][0]
@@ -950,7 +950,7 @@ class OMPDB:
         with self.db.transaction(read_write=True) as c:
             for table in tables:
                 c.execute(
-                    'UPDATE omp..{} SET projectid=@n WHERE projectid=@o'.format(table),
+                    'UPDATE omp.{} SET projectid=@n WHERE projectid=@o'.format(table),
                     {'@n': project_new, '@o': project_old})
 
 
@@ -959,7 +959,7 @@ class OMPDB:
         Return all projects supported by a given userid for a given semester.
 
         """
-        query = ("SELECT p.projectid FROM omp..ompproj AS p JOIN omp..ompprojuser AS u ON p.projectid=u.projectid " \
+        query = ("SELECT p.projectid FROM omp.ompproj AS p JOIN omp.ompprojuser AS u ON p.projectid=u.projectid " \
                 " WHERE u.userid=@u AND u.capacity='SUPPORT' AND p.semester=@s")
         args = {'@u': userid, '@s': semester}
         with self.db.transaction(read_write=False) as c:
@@ -979,9 +979,9 @@ class OMPDB:
         projinfo = namedtuple('projinfo', 'project semester country tagpriority')
 
         query = ("SELECT p.projectid, p.semester, q.country, q.tagpriority "
-                 "FROM omp..ompproj AS p JOIN omp..ompprojqueue AS q ON p.projectid=q.projectid "
+                 "FROM omp.ompproj AS p JOIN omp.ompprojqueue AS q ON p.projectid=q.projectid "
                  "WHERE p.projectid IN ( "
-                 "   SELECT DISTINCT project FROM jcmt..COMMON WHERE utdate>=@s AND utdate<=@e "
+                 "   SELECT DISTINCT project FROM jcmt.COMMON WHERE utdate>=@s AND utdate<=@e "
                  " ) "
                  "ORDER BY p.semester, q.country, p.projectid"
                  )
@@ -998,7 +998,7 @@ class OMPDB:
         """
         """
         query = ("SELECT obsid, molecule, transiti, bwmode, subsysnr, doppler, zsource, restfreq "
-                 " FROM jcmt..ACSIS WHERE obsid in (SELECT obsid from jcmt..COMMON where project=@p)")
+                 " FROM jcmt.ACSIS WHERE obsid in (SELECT obsid from jcmt.COMMON where project=@p)")
         args = {'@p': projectcode}
         acsisInfo = namedtuple('acsisInfo', "obsid, molecule transition bwmode subsysnr doppler zsource restfreq")
         with self.db.transaction(read_write=False) as c:
@@ -1034,9 +1034,9 @@ class OMPDB:
         query = ("SELECT c.*, "
                  " CASE WHEN p.commentstatus is NULL THEN 0 ELSE p.commentstatus END AS commentstatus, "
                  " p.commenttext, p.commentauthor, p.commentdate "
-                 " FROM omp..ompobslog AS p, jcmt..COMMON AS c "
+                 " FROM omp.ompobslog AS p, jcmt.COMMON AS c "
                  " WHERE c.obsid*=p.obsid AND obslogid IN "
-                 "   (SELECT MAX(obslogid) from omp..ompobslog WHERE obsactive=1 GROUP BY obsid) "
+                 "   (SELECT MAX(obslogid) from omp.ompobslog WHERE obsactive=1 GROUP BY obsid) "
                  "  AND c.project=@p ")
 
         args = {'@p': projectcode}
@@ -1085,7 +1085,7 @@ class OMPDB:
         """
         query = ("SELECT pol, instrument, title, wavelength, target, coordstype, ra2000, dec2000, remaining, "
                  " a.timeest,  taumin, taumax, priority "
-                 " FROM omp..ompobs AS a JOIN omp..ompmsb  as m ON a.msbid=m.msbid "
+                 " FROM omp.ompobs AS a JOIN omp.ompmsb  as m ON a.msbid=m.msbid "
                  " WHERE m.projectid=@p AND m.remaining > 0 ")
         args = {'@p': projectcode}
         with self.db.transaction(read_write=False) as c:
@@ -1111,11 +1111,11 @@ class OMPDB:
         userinfo = namedtuple('userinfo', 'userid uname email cadcuser contactable')
 
         query_users = ("SELECT u.userid, uname, email, cadcuser, contactable, capacity "
-                       "FROM omp..ompprojuser AS pu  JOIN omp..ompuser AS u ON pu.userid=u.userid "
+                       "FROM omp.ompprojuser AS pu  JOIN omp.ompuser AS u ON pu.userid=u.userid "
                        "WHERE projectid=@p")
 
         query_proj = ("SELECT projectid, title, semester, allocated/(60.0*60.0), remaining/(60.0*60.0), taumin, taumax, state "
-                 "FROM omp..ompproj "
+                 "FROM omp.ompproj "
                  "WHERE projectid=@p")
 
         args = {'@p': projectcode}

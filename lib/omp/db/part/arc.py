@@ -15,10 +15,13 @@ logger = logging.getLogger(__name__)
 class ArcDB(OMPDB):
     def __init__(self):
         """
-        Create a new connection to the Sybase server
+        Create a new connection to the MySQL server
         """
 
         config = get_omp_siteconfig()
+
+        if config.get('hdr_database', 'driver') != 'mysql':
+            raise Exception('Configured header database is not MySQL')
 
         OMPDB.__init__(
             self,

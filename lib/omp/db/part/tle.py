@@ -1,4 +1,5 @@
 # Copyright (C) 2014 Science and Technology Facilities Council.
+# Copyright (C) 2015-2017 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +17,7 @@
 import logging
 
 from omp.siteconfig import get_omp_siteconfig
-from omp.db.backend.sybase import OMPSybaseLock
+from omp.db.backend.mysql import OMPMySQLLock
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +28,17 @@ class TLEDB(object):
     """
     def __init__(self, **kwargs):
         cfg = get_omp_siteconfig()
+
+        if cfg.get('database', 'driver') != 'mysql':
+            raise Exception('Configured OMP database is not MySQL')
+
+        server = cfg.get('database', 'server')
         user = cfg.get('database', 'user')
         password = cfg.get('database', 'password')
 
         logger.debug('Connecting to OMP, user:%s', user)
-        self.db = OMPSybaseLock(
-            server='SYB_JAC',
+        self.db = OMPMySQLLock(
+            server=server,
             user=user,
             password=password,
             **kwargs)

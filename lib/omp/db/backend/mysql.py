@@ -1,4 +1,5 @@
 # Copyright (C) 2014 Science and Technology Facilities Council.
+# Copyright (C) 2015-2017 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,16 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import Sybase
+from __future__ import absolute_import
+
 from contextlib import contextmanager
 from threading import Lock
 from types import MethodType
 
+import mysql.connector
+
 from omp.error import OMPDBError
 
 
-class OMPSybaseLock:
-    """Sybase lock and cursor management class.
+class OMPMySQLLock:
+    """MySQL lock and cursor management class.
     """
 
     def __init__(self, server, user, password, read_only=False):
@@ -36,12 +40,11 @@ class OMPSybaseLock:
 
         self._read_only = read_only
         self._lock = Lock()
-        self._conn = Sybase.connect(
-            server,
-            user,
-            password,
-            datetime='python',
-            auto_commit=0)
+        self._conn = mysql.connector.connect(
+            host=server,
+            user=user,
+            password=password,
+            autocommit=False)
 
     @contextmanager
     def transaction(self, read_write=False):
@@ -89,7 +92,7 @@ class OMPSybaseLock:
             if read_write:
                 self._conn.commit()
 
-        except Sybase.Error as e:
+        except mysql.connector.Error as e:
             # If we got a database-specific error, re-raise it as our
             # generic error.  Let other exceptions through unchanged.
             # Sybase appears to need us to read the error before

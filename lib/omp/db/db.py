@@ -1,4 +1,5 @@
 # Copyright (C) 2014-2015 Science and Technology Facilities Council.
+# Copyright (C) 2015-2017 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +22,7 @@ from keyword import iskeyword
 
 from pytz import UTC
 
-from omp.db.backend.sybase import OMPSybaseLock
+from omp.db.backend.mysql import OMPMySQLLock
 from omp.error import OMPDBError
 
 import logging
@@ -38,11 +39,11 @@ class OMPDB:
     def __init__(self, **kwargs):
         """Construct new OMP and JCMT database object.
 
-        Connects to the JAC Sybase server.
+        Connects to the EAO MySQL server.
 
         """
 
-        self.db = OMPSybaseLock(**kwargs)
+        self.db = OMPMySQLLock(**kwargs)
 
     def get_obsid_common(self, obsid):
         """Retrieve information for a given obsid from the COMMON table.

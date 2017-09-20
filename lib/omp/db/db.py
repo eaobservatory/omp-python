@@ -146,7 +146,7 @@ class OMPDB:
                 ['"{}"'.format(x) for x in ignore_instruments])))
 
         # Check the observation is finished.  (Started >= 4 hours ago.)
-        where.append('(DATEDIFF(hh, date_obs, UTC_TIMESTAMP()) >= 4)')
+        where.append('(TIMESTAMPDIFF(HOUR, date_obs, UTC_TIMESTAMP()) >= 4)')
 
         # Look for last_caom_mod NULL, older than last_modified
         # or (optionally) comment newer than last_caom_mod.
@@ -316,7 +316,7 @@ class OMPDB:
         query = ("SELECT c.obsid, "
                  "  CASE WHEN c.recipe='REDUCE_POL_SCAN' THEN 'POL-2' ELSE c.instrume END AS instrume, "
                  " c.wvmtaust, c.wvmtauen, c.utdate, c.obsnum, c.object,"
-                 " datediff(second, c.date_obs, c.date_end) as time, o.commentstatus, o.commenttext,"
+                 " timestampdiff(second, c.date_obs, c.date_end) as time, o.commentstatus, o.commenttext,"
                  " c.req_mintau, c.req_maxtau "
                  " FROM jcmt.COMMON as c, omp.ompobslog as o"
                  " WHERE project=%(p)s AND c.obsid*=o.obsid "
@@ -431,7 +431,7 @@ class OMPDB:
         select_inner = ("SELECT c.project, "
                  "             CASE WHEN c.recipe='REDUCE_POL_SCAN' THEN 'POL-2' ELSE c.instrume "
                  "             END AS instrume, "
-                 "             datediff(second, c.date_obs, c.date_end) as duration, "
+                 "             timestampdiff(second, c.date_obs, c.date_end) as duration, "
                  "             CASE WHEN o.commentstatus is NULL "
                  "                  THEN 0 "
                  "                  ELSE o.commentstatus "
@@ -451,7 +451,7 @@ class OMPDB:
              )
 
         if csotau:
-            select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, " \
+            select_inner = ("SELECT c.project, c.instrume, timestampdiff(second, c.date_obs, c.date_end) as duration, " \
                  "             CASE WHEN o.commentstatus is NULL "\
                  "                  THEN 0 "\
                  "                  ELSE o.commentstatus "\
@@ -526,7 +526,7 @@ class OMPDB:
 
 
 
-        select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, "
+        select_inner = ("SELECT c.project, c.instrume, timestampdiff(second, c.date_obs, c.date_end) as duration, "
                  "             CASE WHEN o.commentstatus is NULL "
                  "                  THEN 0 "
                  "                  ELSE o.commentstatus "
@@ -546,7 +546,7 @@ class OMPDB:
              )
 
         if csotau:
-            select_inner = ("SELECT c.project, c.instrume, datediff(second, c.date_obs, c.date_end) as duration, " \
+            select_inner = ("SELECT c.project, c.instrume, timestampdiff(second, c.date_obs, c.date_end) as duration, " \
                  "             CASE WHEN o.commentstatus is NULL "\
                  "                  THEN 0 "\
                  "                  ELSE o.commentstatus "\

@@ -58,7 +58,7 @@ class TLEDB(object):
                             INSERT INTO omp.omptle
                             (target, el1, el2, el3, el4, el5, el6, el7, el8, retrieved)
                             VALUES
-                            (@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8, getdate())
+                            (@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8, now())
                            """,
                            {
                                '@target': tle["target"],

@@ -407,7 +407,7 @@ class ArcDB(OMPDB):
             pass
         else:
             if proprietary_date is None:
-                prop_date_str = 'getdate()'
+                prop_date_str = 'now()'
             else:
                 prop_date_str = '"' + proprietary_date + '"'
             if proprietary:

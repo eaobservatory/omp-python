@@ -443,7 +443,7 @@ class OMPDB:
                  "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.2  and 100  then '5' "
                  "                  ELSE 'unknown' "
                  "             END AS band, "
-                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0 "
+                 "             CASE WHEN HOUR(date_obs)+MINUTE(date_obs)/60.0 "
                  "                       between 3.5 and 19.5 THEN 'night' "
                  "                  ELSE 'day' "
                  "             END AS daynight "
@@ -463,7 +463,7 @@ class OMPDB:
                  "                  WHEN (tau225st+tau225en)/2.0 between 0.2  and 100  then '5' "\
                  "                  ELSE 'unknown' "\
                  "             END AS band, "\
-                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0"
+                 "             CASE WHEN HOUR(date_obs)+MINUTE(date_obs)/60.0"
                  "                       between 3.5 and 19.5 THEN 'night'"\
                  "                  ELSE 'day' "\
                  "             END AS daynight "
@@ -538,7 +538,7 @@ class OMPDB:
                  "                  WHEN (wvmtaust+wvmtauen)/2.0 between 0.2  and 100  then '5' "
                  "                  ELSE 'unknown' "
                  "             END AS band, "
-                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0 "
+                 "             CASE WHEN HOUR(date_obs)+MINUTE(date_obs)/60.0 "
                  "                       between 3.5 and 19.5 THEN 'night' "
                  "                  ELSE 'day' "
                  "             END AS daynight "
@@ -558,7 +558,7 @@ class OMPDB:
                  "                  WHEN (tau225st+tau225en)/2.0 between 0.2  and 100  then '5' "\
                  "                  ELSE 'unknown' "\
                  "             END AS band, "\
-                 "             CASE WHEN datepart(hh, date_obs)+datepart(mi, date_obs)/60.0"
+                 "             CASE WHEN HOUR(date_obs)+MINUTE(date_obs)/60.0"
                  "                       between 3.5 and 19.5 THEN 'night'"\
                  "                  ELSE 'day' "\
                  "             END AS daynight "

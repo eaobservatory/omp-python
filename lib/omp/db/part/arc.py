@@ -304,7 +304,7 @@ class ArcDB(OMPDB):
             params['p'] = project
         else:
             if not allow_ec_cal:
-                conditions.append('project NOT LIKE "%EC%"')
+                conditions.append('project NOT LIKE "%%EC%%"')
                 conditions.append('project <> "JCMTCAL"')
                 conditions.append('project <> "CAL"')
 

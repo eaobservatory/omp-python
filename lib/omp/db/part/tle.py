@@ -47,9 +47,9 @@ class TLEDB(object):
         """Takes tle and submits it into omp db"""
         with self.db.transaction(read_write=True) as cursor:
             logger.debug('Deleting old omptle row for "%s"', tle['target'])
-            cursor.execute("DELETE FROM omp.omptle WHERE target=@target",
+            cursor.execute("DELETE FROM omp.omptle WHERE target=%(target)s",
                            {
-                               '@target': tle["target"]
+                               'target': tle["target"]
                            }
                            )
 
@@ -58,18 +58,18 @@ class TLEDB(object):
                             INSERT INTO omp.omptle
                             (target, el1, el2, el3, el4, el5, el6, el7, el8, retrieved)
                             VALUES
-                            (@target, @el1, @el2, @el3, @el4, @el5, @el6, @el7, @el8, now())
+                            (%(target)s, %(el1)s, %(el2)s, %(el3)s, %(el4)s, %(el5)s, %(el6)s, %(el7)s, %(el8)s, now())
                            """,
                            {
-                               '@target': tle["target"],
-                               '@el1': tle["el1"],
-                               '@el2': tle["el2"],
-                               '@el3': tle["el3"],
-                               '@el4': tle["el4"],
-                               '@el5': tle["el5"],
-                               '@el6': tle["el6"],
-                               '@el7': tle["el7"],
-                               '@el8': tle["el8"]
+                               'target': tle["target"],
+                               'el1': tle["el1"],
+                               'el2': tle["el2"],
+                               'el3': tle["el3"],
+                               'el4': tle["el4"],
+                               'el5': tle["el5"],
+                               'el6': tle["el6"],
+                               'el7': tle["el7"],
+                               'el8': tle["el8"]
                            })
 
     def retrieve_ids(self, include_removed=False):
@@ -99,18 +99,18 @@ class TLEDB(object):
             logger.debug('Updating ompobs with: %s', repr(tle))
             cursor.execute("""
                             UPDATE omp.ompobs SET
-                            el1=@el1, el2=@el2, el3=@el3, el4=@el4,
-                            el5=@el5, el6=@el6, el7=@el7, el8=@el8
-                            WHERE coordstype="AUTO-TLE" AND target=@target
+                            el1=%(el1)s, el2=%(el2)s, el3=%(el3)s, el4=%(el4)s,
+                            el5=%(el5)s, el6=%(el6)s, el7=%(el7)s, el8=%(el8)s
+                            WHERE coordstype="AUTO-TLE" AND target=%(target)s
                            """,
                            {
-                               '@el1': tle["el1"],
-                               '@el2': tle["el2"],
-                               '@el3': tle["el3"],
-                               '@el4': tle["el4"],
-                               '@el5': tle["el5"],
-                               '@el6': tle["el6"],
-                               '@el7': tle["el7"],
-                               '@el8': tle["el8"],
-                               '@target': tle["target"]
+                               'el1': tle["el1"],
+                               'el2': tle["el2"],
+                               'el3': tle["el3"],
+                               'el4': tle["el4"],
+                               'el5': tle["el5"],
+                               'el6': tle["el6"],
+                               'el7': tle["el7"],
+                               'el8': tle["el8"],
+                               'target': tle["target"]
                            })

@@ -300,8 +300,8 @@ class ArcDB(OMPDB):
                   'obsdectl', 'obsdecbl', 'obsdectr', 'obsdecbr']
 
         if project is not None:
-            conditions.append('project=@p')
-            params['@p'] = project
+            conditions.append('project=%(p)s')
+            params['p'] = project
         else:
             if not allow_ec_cal:
                 conditions.append('project NOT LIKE "%EC%"')
@@ -309,35 +309,35 @@ class ArcDB(OMPDB):
                 conditions.append('project <> "CAL"')
 
         if date_start is not None:
-            conditions.append('utdate>=@ds')
-            params['@ds'] = int(date_start)
+            conditions.append('utdate>=%(ds)s')
+            params['ds'] = int(date_start)
 
         if date_end is not None:
-            conditions.append('utdate<=@de')
-            params['@de'] = int(date_end)
+            conditions.append('utdate<=%(de)s')
+            params['de'] = int(date_end)
 
         if instrument is not None:
-            conditions.append('UPPER(instrume)=@i')
-            params['@i'] = instrument.upper()
+            conditions.append('UPPER(instrume)=%(i)s')
+            params['i'] = instrument.upper()
         elif not_instrument is not None:
-            conditions.append('UPPER(instrume)<>@ni')
-            params['@ni'] = not_instrument.upper()
+            conditions.append('UPPER(instrume)<>%(ni)s')
+            params['ni'] = not_instrument.upper()
 
         if backend is not None:
-            conditions.append('UPPER(backend)=@be')
-            params['@be'] = backend.upper()
+            conditions.append('UPPER(backend)=%(be)s')
+            params['be'] = backend.upper()
 
         if map_width is not None:
-            conditions.append('map_wdth=@w')
-            params['@w'] = map_width
+            conditions.append('map_wdth=%(w)s')
+            params['w'] = map_width
 
         if map_height is not None:
-            conditions.append('map_hght=@h')
-            params['@h'] = map_height
+            conditions.append('map_hght=%(h)s')
+            params['h'] = map_height
 
         if obs_num is not None:
-            conditions.append('obsnum=@obs')
-            params['@obs'] = obs_num
+            conditions.append('obsnum=%(obs)s')
+            params['obs'] = obs_num
 
         if acsis_info:
             needs_acsis = True
@@ -351,18 +351,18 @@ class ArcDB(OMPDB):
 
         if rest_freq is not None:
             needs_acsis = True
-            conditions.append('abs(restfreq - @rf) < 0.0001')
-            params['@rf'] = rest_freq
+            conditions.append('abs(restfreq - %(rf)s) < 0.0001')
+            params['rf'] = rest_freq
 
         if if_freq is not None:
             needs_acsis = True
-            conditions.append('abs(iffreq - @if) < 0.0001')
-            params['@if'] = if_freq
+            conditions.append('abs(iffreq - %(if)s) < 0.0001')
+            params['if'] = if_freq
 
         if bw_mode is not None:
             needs_acsis = True
-            conditions.append('bwmode=@bwm')
-            params['@bwm'] = bw_mode
+            conditions.append('bwmode=%(bwm)s')
+            params['bwm'] = bw_mode
 
         if project_info or project_map_info:
             fields.append('project')
@@ -379,8 +379,8 @@ class ArcDB(OMPDB):
         if science_only:
             conditions.append('obs_type="science"')
         elif obstype is not None:
-            conditions.append('obs_type=@ot')
-            params['@ot'] = obstype
+            conditions.append('obs_type=%(ot)s')
+            params['ot'] = obstype
 
         if no_freq_sw:
             conditions.append('sw_mode<>"freqsw"')

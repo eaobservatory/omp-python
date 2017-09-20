@@ -146,7 +146,7 @@ class OMPDB:
                 ['"{}"'.format(x) for x in ignore_instruments])))
 
         # Check the observation is finished.  (Started >= 4 hours ago.)
-        where.append('(DATEDIFF(hh, date_obs, GETUTCDATE()) >= 4)')
+        where.append('(DATEDIFF(hh, date_obs, UTC_TIMESTAMP()) >= 4)')
 
         # Look for last_caom_mod NULL, older than last_modified
         # or (optionally) comment newer than last_caom_mod.
@@ -197,7 +197,7 @@ class OMPDB:
         """
 
         query = 'UPDATE jcmt.COMMON SET last_caom_mod = ' + \
-            ('NULL' if set_null else 'GETUTCDATE()') + \
+            ('NULL' if set_null else 'UTC_TIMESTAMP()') + \
             ' WHERE obsid=%(o)s'
         args = {'o': obsid}
 

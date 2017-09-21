@@ -625,7 +625,8 @@ class OMPDB:
                  "       sum(o.timeest*o.remaining), o.taumin, o.taumax "\
                  "FROM omp.ompmsb as o ")
         where = " WHERE o.remaining > 0 "
-        where += " AND " + projectselect
+        if projectselect:
+            where += " AND " + projectselect
         group = " GROUP BY o.taumin, o.taumax, o.projectid ORDER BY o.projectid, o.taumin, o.taumax"
 
         query += where
@@ -768,7 +769,9 @@ class OMPDB:
         query = ("SELECT a.projectid, f.faultid, f.status, f.subject "\
                  "FROM omp.ompfaultassoc as a JOIN omp.ompfault as f "\
                  "ON a.faultid = f.faultid ")
-        query += " WHERE {}".format(projectselect)
+
+        if projectselect:
+            query += " WHERE {}".format(projectselect)
 
         faultinfo = namedtuple('faultinfo', 'project faultid status subject')
         with self.db.transaction(read_write=False) as c:

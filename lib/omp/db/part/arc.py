@@ -4,6 +4,7 @@
 
 __author__ = "Russell O. Redman"
 
+from datetime import datetime, timedelta
 import logging
 
 from omp.db.db import OMPDB
@@ -432,3 +433,70 @@ class ArcDB(OMPDB):
                       params)
 
             return c.fetchall()
+
+    def find_calibrator_obsnum(
+            self, utdate, instrument, objects=None, obstype=None):
+        args = {
+            'utdate': utdate,
+            'instrument': instrument,
+        }
+        query = (
+            'SELECT obsnum '
+            'FROM jcmt.COMMON WHERE utdate=%(utdate)s '
+            'AND instrume=%(instrument)s '
+            'AND project="JCMTCAL" '
+        )
+
+        if objects is not None:
+            params = []
+            for (i, object_) in enumerate(objects):
+                param = 'object{}'.format(i)
+                args[param] = object_
+                params.append(param)
+            query = query + 'AND object IN (' + ', '.join(
+                ('%({})s'.format(x) for x in params)) + ') '
+
+        if obstype is not None:
+            query = query + 'AND obs_type=%(obstype)s '
+            args['obstype'] = obstype
+
+        print("Query: " + query)
+        print("Params: " + repr(args))
+
+        result = []
+
+        with self.db.transaction() as c:
+            c.execute(query, args)
+
+            while True:
+                row = c.fetchone()
+                if row is None:
+                    break
+
+                result.append(row[0])
+
+        return result
+
+    def read_cso_opacity_data(
+            self, utdate):
+        utdate = datetime.strptime(utdate, '%Y%m%d')
+
+        result = []
+
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT cso_ut, tau, tau_rms '
+                'FROM jcmt_tms.CSOTAU WHERE cso_ut >= %(ds)s AND cso_ut < %(de)s',
+                {
+                    'ds': utdate,
+                    'de': (utdate + timedelta(days=1)),
+                })
+
+            while True:
+                row = c.fetchone()
+                if row is None:
+                    break
+
+                result.append(row)
+
+        return result

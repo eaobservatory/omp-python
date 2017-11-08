@@ -197,7 +197,7 @@ class OMPDB:
         """
 
         query = 'UPDATE jcmt.COMMON SET last_caom_mod = ' + \
-            ('NULL' if set_null else 'UTC_TIMESTAMP()') + \
+            ('NULL' if set_null else 'NOW()') + \
             ' WHERE obsid=%(o)s'
         args = {'o': obsid}
 

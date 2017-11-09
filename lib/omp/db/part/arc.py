@@ -434,6 +434,24 @@ class ArcDB(OMPDB):
 
             return c.fetchall()
 
+    def get_obsid_and_project(self, utdate, obsnum):
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT obsid, project FROM jcmt.COMMON WHERE '
+                'utdate=%(utdate)s AND '
+                'instrume="SCUBA-2" AND '
+                'obsnum=%(obsnum)s',
+                {
+                    'utdate': utdate.strftime('%Y%m%d'),
+                    'obsnum': obsnum,
+                })
+
+            row = c.fetchall()
+            obsid = row[0][0]
+            project = row[0][1]
+
+        return (obsid, project)
+
     def find_calibrator_obsnum(
             self, utdate, instrument, objects=None, obstype=None):
         args = {

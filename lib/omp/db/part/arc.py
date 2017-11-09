@@ -443,6 +443,23 @@ class ArcDB(OMPDB):
 
         return (obsid, project)
 
+    def get_dates_for_project(self, project):
+        result = []
+
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT DISTINCT utdate from jcmt.COMMON'
+                ' WHERE project = %(project)s',
+                {'project': project})
+
+            while True:
+                row = c.fetchone()
+                if row is None:
+                    break
+                result.append(row[0])
+
+        return result
+
     def find_calibrator_obsnum(
             self, utdate, instrument, objects=None, obstype=None):
         args = {

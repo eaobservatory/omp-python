@@ -500,3 +500,14 @@ class ArcDB(OMPDB):
                 result.append(row)
 
         return result
+
+    def read_cso_opacity_data_range(self, utc0, utc1):
+        with self.db.transaction() as c:
+            c.execute(
+                'select cso_ut, tau, tau_rms from jcmt_tms.CSOTAU '
+                'where cso_ut>=%(ds)s and cso_ut<=%(de)s ',
+                {'ds': utc0, 'de': utc1})
+
+            rows = c.fetchall()
+
+        return rows

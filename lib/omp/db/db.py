@@ -45,6 +45,13 @@ class OMPDB:
 
         self.db = OMPMySQLLock(**kwargs)
 
+    def close(self):
+        """
+        Close the database connection.
+        """
+
+        self.db.close()
+
     def get_obsid_common(self, obsid):
         """Retrieve information for a given obsid from the COMMON table.
         """

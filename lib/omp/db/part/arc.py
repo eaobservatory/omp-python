@@ -64,15 +64,6 @@ class ArcDB(OMPDB):
 
         return returnList
 
-    def close(self):
-        """
-        Close the database conenction
-
-        Currently not implemented.
-        """
-
-        pass
-
     def get_project_pi_title(self, project_id):
         """
         Retrieve the PI name and project title for the given project.

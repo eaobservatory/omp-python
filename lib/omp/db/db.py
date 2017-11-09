@@ -196,8 +196,11 @@ class OMPDB:
         than being set to the current date and time.
         """
 
+        # Explicitly set last_modified to the existing value to prevent
+        # MySQL from automatically updating it.
         query = 'UPDATE jcmt.COMMON SET last_caom_mod = ' + \
             ('NULL' if set_null else 'NOW()') + \
+            ', last_modified = last_modified' + \
             ' WHERE obsid=%(o)s'
         args = {'o': obsid}
 

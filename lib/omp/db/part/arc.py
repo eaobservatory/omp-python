@@ -4,6 +4,7 @@
 
 __author__ = "Russell O. Redman"
 
+from datetime import datetime, timedelta
 import logging
 
 from omp.db.db import OMPDB
@@ -15,10 +16,13 @@ logger = logging.getLogger(__name__)
 class ArcDB(OMPDB):
     def __init__(self):
         """
-        Create a new connection to the Sybase server
+        Create a new connection to the MySQL server
         """
 
         config = get_omp_siteconfig()
+
+        if config.get('hdr_database', 'driver') != 'mysql':
+            raise Exception('Configured header database is not MySQL')
 
         OMPDB.__init__(
             self,
@@ -27,8 +31,8 @@ class ArcDB(OMPDB):
             password=config.get('hdr_database', 'password'),
             read_only=True)
 
-        self.jcmt_db = 'jcmt..'
-        self.omp_db = 'omp..'
+        self.jcmt_db = 'jcmt.'
+        self.omp_db = 'omp.'
 
     def read(self, query, params={}):
         """
@@ -60,15 +64,6 @@ class ArcDB(OMPDB):
 
         return returnList
 
-    def close(self):
-        """
-        Close the database conenction
-
-        Currently not implemented.
-        """
-
-        pass
-
     def get_project_pi_title(self, project_id):
         """
         Retrieve the PI name and project title for the given project.
@@ -85,8 +80,8 @@ class ArcDB(OMPDB):
             'SELECT ',
             '    ou.uname,',
             '    op.title',
-            'FROM omp..ompproj op',
-            '    LEFT JOIN omp..ompuser ou'
+            'FROM omp.ompproj op',
+            '    LEFT JOIN omp.ompuser ou'
             '        ON op.pi=ou.userid AND ou.obfuscated=0',
             'WHERE op.projectid="%s"' % (project_id,)])
         answer = self.read(sqlcmd)
@@ -297,44 +292,44 @@ class ArcDB(OMPDB):
                   'obsdectl', 'obsdecbl', 'obsdectr', 'obsdecbr']
 
         if project is not None:
-            conditions.append('project=@p')
-            params['@p'] = project
+            conditions.append('project=%(p)s')
+            params['p'] = project
         else:
             if not allow_ec_cal:
-                conditions.append('project NOT LIKE "%EC%"')
+                conditions.append('project NOT LIKE "%%EC%%"')
                 conditions.append('project <> "JCMTCAL"')
                 conditions.append('project <> "CAL"')
 
         if date_start is not None:
-            conditions.append('utdate>=@ds')
-            params['@ds'] = int(date_start)
+            conditions.append('utdate>=%(ds)s')
+            params['ds'] = int(date_start)
 
         if date_end is not None:
-            conditions.append('utdate<=@de')
-            params['@de'] = int(date_end)
+            conditions.append('utdate<=%(de)s')
+            params['de'] = int(date_end)
 
         if instrument is not None:
-            conditions.append('UPPER(instrume)=@i')
-            params['@i'] = instrument.upper()
+            conditions.append('UPPER(instrume)=%(i)s')
+            params['i'] = instrument.upper()
         elif not_instrument is not None:
-            conditions.append('UPPER(instrume)<>@ni')
-            params['@ni'] = not_instrument.upper()
+            conditions.append('UPPER(instrume)<>%(ni)s')
+            params['ni'] = not_instrument.upper()
 
         if backend is not None:
-            conditions.append('UPPER(backend)=@be')
-            params['@be'] = backend.upper()
+            conditions.append('UPPER(backend)=%(be)s')
+            params['be'] = backend.upper()
 
         if map_width is not None:
-            conditions.append('map_wdth=@w')
-            params['@w'] = map_width
+            conditions.append('map_wdth=%(w)s')
+            params['w'] = map_width
 
         if map_height is not None:
-            conditions.append('map_hght=@h')
-            params['@h'] = map_height
+            conditions.append('map_hght=%(h)s')
+            params['h'] = map_height
 
         if obs_num is not None:
-            conditions.append('obsnum=@obs')
-            params['@obs'] = obs_num
+            conditions.append('obsnum=%(obs)s')
+            params['obs'] = obs_num
 
         if acsis_info:
             needs_acsis = True
@@ -348,18 +343,18 @@ class ArcDB(OMPDB):
 
         if rest_freq is not None:
             needs_acsis = True
-            conditions.append('abs(restfreq - @rf) < 0.0001')
-            params['@rf'] = rest_freq
+            conditions.append('abs(restfreq - %(rf)s) < 0.0001')
+            params['rf'] = rest_freq
 
         if if_freq is not None:
             needs_acsis = True
-            conditions.append('abs(iffreq - @if) < 0.0001')
-            params['@if'] = if_freq
+            conditions.append('abs(iffreq - %(if)s) < 0.0001')
+            params['if'] = if_freq
 
         if bw_mode is not None:
             needs_acsis = True
-            conditions.append('bwmode=@bwm')
-            params['@bwm'] = bw_mode
+            conditions.append('bwmode=%(bwm)s')
+            params['bwm'] = bw_mode
 
         if project_info or project_map_info:
             fields.append('project')
@@ -376,8 +371,8 @@ class ArcDB(OMPDB):
         if science_only:
             conditions.append('obs_type="science"')
         elif obstype is not None:
-            conditions.append('obs_type=@ot')
-            params['@ot'] = obstype
+            conditions.append('obs_type=%(ot)s')
+            params['ot'] = obstype
 
         if no_freq_sw:
             conditions.append('sw_mode<>"freqsw"')
@@ -404,7 +399,7 @@ class ArcDB(OMPDB):
             pass
         else:
             if proprietary_date is None:
-                prop_date_str = 'getdate()'
+                prop_date_str = 'now()'
             else:
                 prop_date_str = '"' + proprietary_date + '"'
             if proprietary:
@@ -418,14 +413,127 @@ class ArcDB(OMPDB):
             condition = ''
 
         if needs_acsis:
-            extra_table = ' LEFT JOIN jcmt..ACSIS ON ' \
-                'jcmt..COMMON.obsid=jcmt..ACSIS.obsid'
+            extra_table = ' LEFT JOIN jcmt.ACSIS ON ' \
+                'jcmt.COMMON.obsid=jcmt.ACSIS.obsid'
         else:
             extra_table = ''
 
         with self.db.transaction() as c:
             c.execute('SELECT ' + ', '.join(fields) +
-                      ' FROM jcmt..COMMON' + extra_table + condition,
+                      ' FROM jcmt.COMMON' + extra_table + condition,
                       params)
 
             return c.fetchall()
+
+    def get_obsid_and_project(self, utdate, obsnum):
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT obsid, project FROM jcmt.COMMON WHERE '
+                'utdate=%(utdate)s AND '
+                'instrume="SCUBA-2" AND '
+                'obsnum=%(obsnum)s',
+                {
+                    'utdate': utdate.strftime('%Y%m%d'),
+                    'obsnum': obsnum,
+                })
+
+            row = c.fetchall()
+            obsid = row[0][0]
+            project = row[0][1]
+
+        return (obsid, project)
+
+    def get_dates_for_project(self, project):
+        result = []
+
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT DISTINCT utdate from jcmt.COMMON'
+                ' WHERE project = %(project)s',
+                {'project': project})
+
+            while True:
+                row = c.fetchone()
+                if row is None:
+                    break
+                result.append(row[0])
+
+        return result
+
+    def find_calibrator_obsnum(
+            self, utdate, instrument, objects=None, obstype=None):
+        args = {
+            'utdate': utdate,
+            'instrument': instrument,
+        }
+        query = (
+            'SELECT obsnum '
+            'FROM jcmt.COMMON WHERE utdate=%(utdate)s '
+            'AND instrume=%(instrument)s '
+            'AND project="JCMTCAL" '
+        )
+
+        if objects is not None:
+            params = []
+            for (i, object_) in enumerate(objects):
+                param = 'object{}'.format(i)
+                args[param] = object_
+                params.append(param)
+            query = query + 'AND object IN (' + ', '.join(
+                ('%({})s'.format(x) for x in params)) + ') '
+
+        if obstype is not None:
+            query = query + 'AND obs_type=%(obstype)s '
+            args['obstype'] = obstype
+
+        print("Query: " + query)
+        print("Params: " + repr(args))
+
+        result = []
+
+        with self.db.transaction() as c:
+            c.execute(query, args)
+
+            while True:
+                row = c.fetchone()
+                if row is None:
+                    break
+
+                result.append(row[0])
+
+        return result
+
+    def read_cso_opacity_data(
+            self, utdate):
+        utdate = datetime.strptime(utdate, '%Y%m%d')
+
+        result = []
+
+        with self.db.transaction() as c:
+            c.execute(
+                'SELECT cso_ut, tau, tau_rms '
+                'FROM jcmt_tms.CSOTAU WHERE cso_ut >= %(ds)s AND cso_ut < %(de)s',
+                {
+                    'ds': utdate,
+                    'de': (utdate + timedelta(days=1)),
+                })
+
+            while True:
+                row = c.fetchone()
+                if row is None:
+                    break
+
+                result.append(row)
+
+        return result
+
+    def read_cso_opacity_data_range(self, utc0, utc1):
+        with self.db.transaction() as c:
+            c.execute(
+                'select cso_ut, tau, tau_rms from jcmt_tms.CSOTAU '
+                'where cso_ut>=%(ds)s and cso_ut<=%(de)s ',
+                {'ds': utc0, 'de': utc1})
+
+            rows = c.fetchall()
+
+        return rows

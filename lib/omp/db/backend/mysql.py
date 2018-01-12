@@ -70,6 +70,9 @@ class OMPMySQLLock:
         try:
             self._lock.acquire(True)
 
+            # Make sure we still have an active connection to MySQL.
+            self._conn.ping(reconnect=True, attempts=3, delay=5)
+
             cursor = self._conn.cursor()
 
             if not read_write:

@@ -942,9 +942,7 @@ class OMPDB:
             'ompprojaffiliation',
             'ompprojqueue',
             'ompprojuser',
-            'ompprojuser_order',
             'ompsciprog',
-            'ompsciprog_id',
             'omptimeacct',
         ]
 

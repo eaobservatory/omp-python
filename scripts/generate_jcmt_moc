@@ -24,6 +24,7 @@ generate_jcmt_moc - Create MOC from JCMT observation database
 Usage:
     generate_jcmt_moc --output <filename> --order <order>
         [--backend <backend>] [--instrument <instrument]
+        [--rest-freq <rest-freq>]
         [--proprietary |--no-proprietary]
         [--proprietary-date <proprietary-date>]
         [--date-start <date-start>] [--date-end <date-end>]
@@ -32,6 +33,7 @@ Usage:
 Options:
     --backend <backend>        Backend
     --instrument <instrument>  Instrument
+    --rest-freq <rest-freq>    Rest frequency in GHz
     --output, -o <filename>    Output filename
     --order <order>            MOC order [default: 12]
     --date-start <date-start>  Start date
@@ -54,6 +56,7 @@ def main():
     kwargs = {
         'backend': args['--backend'],
         'instrument': args['--instrument'],
+        'rest_freq': args['--rest-freq'],
         'date_start': args['--date-start'],
         'date_end': args['--date-end'],
         'allow_ec_cal': (not args['--no-ec-cal']),

@@ -878,11 +878,11 @@ class OMPDB:
 
         return results
 
-    def get_cadcusers_and_projects(self, telescope='JCMT'):
+    def get_cadcusers_and_projects(self, telescope='JCMT', ignoresemesters=None):
         """
         Get COI and PI cadcusernames for all projects.
 
-        Excludes semester='MEGA' and semesters='JAC' or 'EAO'.
+        ignoresemesters takes a list of string semester names
 
         Returns a list of namedtuples, giving the projectid, the cadc
         username and the capacity (i.e. COI or PI).
@@ -891,16 +891,20 @@ class OMPDB:
 
         projectuser = namedtuple('projectuser', 'project cadcuser capacity')
 
+        subquery = " SELECT projectid from omp.ompproj WHERE telescope=%(t)s "
+        args = {'t': telescope}
+        if ignoresemesters:
+            for count, sem in enumerate(ignoresemesters):
+                subquery += ' AND semester != %({})s '.format(count)
+                args[str(count)] = sem
         query=(
             "SELECT a.projectid, b.cadcuser, a.capacity "\
             "FROM omp.ompprojuser as a JOIN omp.ompuser AS b ON a.userid=b.userid "\
             "WHERE b.cadcuser IS NOT NULL "\
             "  AND (a.capacity = 'PI' OR a.capacity = 'COI') "\
             "  AND a.projectid IN "\
-            "(SELECT projectid from omp.ompproj "\
-            "  WHERE telescope=%(t)s AND semester !='MEGA' AND semester !='JAC' AND semester != 'EAO')"\
-            "ORDER BY a.projectid, b.cadcuser")
-        args={'t': telescope}
+            "({}) "
+            "ORDER BY a.projectid, b.cadcuser".format(subquery))
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

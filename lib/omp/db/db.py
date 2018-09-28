@@ -433,8 +433,8 @@ class OMPDB:
             where_clauses.append(' utdate >= %(datestart)s ')
             args['datestart'] = utdatestart
         if utdateend:
-            where_clauses.append(' AND utdate <= %(dateend)s ')
-            args['dateeend'] = utdateend
+            where_clauses.append(' utdate <= %(dateend)s ')
+            args['dateend'] = utdateend
 
 
         select_inner = ("SELECT c.project, "

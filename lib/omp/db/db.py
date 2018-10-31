@@ -163,7 +163,7 @@ class OMPDB:
         ]
         if not no_status_check:
             status_condition.append(
-                            '(last_caom_mod < (SELECT MAX(commentdate)'
+                            '(last_caom_mod < (SELECT CONVERT_TZ(MAX(commentdate), "+00:00", "SYSTEM")'
                                 ' FROM omp.ompobslog AS o'
                                 ' WHERE o.obsid=c.obsid))')
         where.append('(' + ' OR '.join(status_condition) + ')')

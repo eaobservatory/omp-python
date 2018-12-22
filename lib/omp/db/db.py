@@ -1214,21 +1214,21 @@ class OMPDB:
         return project_info
 
 
-    def get_project_time_by_weatherband(queue=None, project=None, utdatestart=None, utdateend=None):
-        """Return minutes spend (by observation duration) per project
 
 
-        Either queue or project must be given. Project will be
-        evaluated on a 'LIKE' basis.
 
-        Please note: this does not exclude JUNK/BAD/QUESTIONABLE
-        observations from the time calculation!
 
-        Time charged to projects is different from this: it will also
-        include a share of time gaps from each night, exclude JUNK/BAD
-        observations, and may include other charging variations due to
-        e.g. charging half time for observing in a worse weather band,
-        human error etc.
+    def get_cso_tau(self, utdatestart, utdateend, hourstart=7, hourend=16):
+        query = ("SELECT cso_ut, tau FROM jcmt_tms.CSOTAU WHERE cso_ut >= %(utdatestart)s AND cso_ut <= %(utdateend)s")
 
-        """
-
+        args = {'utdatestart': utdatestart,
+                'utdateend': utdateend,
+                'hourstart': hourstart,
+                'hourend': hourend,
+            }
+        csoinfo = namedtuple('csoinfo', 'date  tau')
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+            results = [csoinfo(*i) for i in rows]
+        return results

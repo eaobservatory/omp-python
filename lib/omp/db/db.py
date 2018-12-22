@@ -35,6 +35,7 @@ class OMPDB:
 
     CommonInfo = None
     FullObservationInfo = None
+    FaultInfo = None
 
     def __init__(self, **kwargs):
         """Construct new OMP and JCMT database object.
@@ -757,6 +758,41 @@ class OMPDB:
             rows = c.fetchall()
             results = [timeinfo(*i) for i in rows]
         return results
+
+    def get_fault_summary_dates(self, start=None, end=None):
+        """
+        Start and end are datetime objects, inclusive.
+
+        """
+        query = ("SELECT * from omp.ompfault")
+        where_clauses = []
+        args = {}
+        if start:
+            where_clauses += [' faultdate >= %(start)s ']
+            args['start'] = start
+        if end:
+            where_clauses += [' faultdate <= %(end)s ']
+            args['end'] = end
+        if where_clauses:
+            query += ' WHERE ' + ' AND '.join(where_clauses)
+
+        with self.db.transaction(read_write=False) as c:
+            print(query, args)
+            c.execute(query, args)
+
+            rows = c.fetchall()
+            cols = c.description
+
+        if not rows:
+            return None
+
+        if self.FaultInfo is None:
+            self.FaultInfo = namedtuple(
+                'FaultInfo',
+                ['{0}_'.format(x[0]) if iskeyword(x[0]) else x[0]
+                 for x in cols])
+
+        return [self.FaultInfo(*i) for i in rows]
 
 
     def get_fault_summary_group(self, semester=None, queue=None, projects=None, patternmatch=None):

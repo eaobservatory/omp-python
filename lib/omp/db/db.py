@@ -1173,16 +1173,16 @@ class OMPDB:
         PI
 
         """
-        projinfo = namedtuple('projinfo', 'id title semester allocated_hours remaining_hours opacityrange state pi fops cois')
+        projinfo = namedtuple('projinfo', 'id title semester country allocated_hours remaining_hours opacityrange state pi fops cois')
         userinfo = namedtuple('userinfo', 'userid uname email cadcuser contactable')
 
         query_users = ("SELECT u.userid, uname, email, cadcuser, contactable, capacity "
                        "FROM omp.ompprojuser AS pu  JOIN omp.ompuser AS u ON pu.userid=u.userid "
                        "WHERE projectid=%(p)s")
 
-        query_proj = ("SELECT projectid, title, semester, allocated/(60.0*60.0), remaining/(60.0*60.0), taumin, taumax, state "
-                 "FROM omp.ompproj "
-                 "WHERE projectid=%(p)s")
+        query_proj = ("SELECT p.projectid, title, semester, country, allocated/(60.0*60.0), remaining/(60.0*60.0), taumin, taumax, state "
+                 "FROM omp.ompproj as p join omp.ompprojqueue as q ON p.projectid=q.projectid "
+                 "WHERE p.projectid=%(p)s")
 
         args = {'p': projectcode}
 
@@ -1204,11 +1204,12 @@ class OMPDB:
             c.execute(query_proj, args)
             projvalues = c.fetchall()
         if len(projvalues) > 1:
-            raise OMPDBError('Multiple projects found for 1 ID!')
+            logger.warning('Project %s found multiple times (nomrally in several semesters). Only first returned', projectcode)
+
         if len(projvalues) == 0:
             raise OMPDBError('No project found for {}'.format(projectcode))
         projvalues = list(projvalues[0])
-        projvalues = projvalues[0:5] + [(projvalues[5], projvalues[6])] + projvalues[7:] + [pi] + [fops] + [cois]
+        projvalues = projvalues[0:6] + [(projvalues[6], projvalues[7])] + projvalues[8:] + [pi] + [fops] + [cois]
         project_info = projinfo(*projvalues)
         return project_info
 

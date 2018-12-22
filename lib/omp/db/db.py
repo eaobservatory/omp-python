@@ -684,7 +684,7 @@ class OMPDB:
         return results
 
     def get_time_charged_group(self, semester=None, queue=None, projects=None,
-                               patternmatch=None, telescope='JCMT'):
+                               patternmatch=None, telescope='JCMT', start=None, end=None):
         """
         Return time charged per day by project.
 
@@ -695,8 +695,8 @@ class OMPDB:
 
         """
         query = ("SELECT t.projectid, t.date, t.timespent, t.confirmed FROM omp.omptimeacct AS  t "
-                 " JOIN omp.ompproj AS p ON t.projectid=p.projectid "
-                 " JOIN omp.ompprojqueue AS q ON t.projectid=q.projectid ")
+                 " LEFT JOIN omp.ompproj AS p ON t.projectid=p.projectid "
+                 " LEFT JOIN omp.ompprojqueue AS q ON t.projectid=q.projectid ")
         args = {}
         wherequery = []
 
@@ -716,8 +716,16 @@ class OMPDB:
             args['pattern'] = patternmatch
 
         if telescope:
-            wherequery += [" p.telescope=%(telescope)s "]
+            wherequery += [" (p.telescope=%(telescope)s  OR t.projectid LIKE %(telescopeupper)s )"]
             args['telescope'] = telescope
+            args['telescopeupper'] = '%{}%'.format(telescope.upper())
+
+        if start:
+            wherequery += ["t.date >=%(start)s"]
+            args['start'] = start
+        if end:
+            wherequery += ["t.date <=%(end)s"]
+            args['end'] = end
 
         query += " WHERE " + " AND ".join(wherequery)
 

@@ -192,33 +192,42 @@ class ArcDB(OMPDB):
 
         return rowlist
 
-    def get_files(self, obsid):
+    def get_files(self, obsid, with_info=False):
         """
         Get the list of files in this observations, grouped obsid_subsysnr
         and sorted alphabetically.
 
         Arguments:
         obsid: the observation identifier for the observation
+        with_info: return (name, size, md5sum) dictionaries instead
         """
         sqlcmd = '\n'.join([
             'SELECT ',
-            '    obsid_subsysnr,',
-            '    file_id',
+            '    obsid_subsysnr, file_id, filesize, md5sum',
             'FROM ' + self.jcmt_db + 'FILES',
             'WHERE obsid="%s"' % (obsid,),
             'ORDER BY obsid_subsysnr, file_id'])
         answer = self.read(sqlcmd)
         logger.debug('query complete')
 
-        results = {}
-        if len(answer):
-            for i in range(len(answer)):
-                obsid_subsysnr = answer[i][0]
-                if obsid_subsysnr not in results:
-                    results[obsid_subsysnr] = []
-                results[obsid_subsysnr].append(answer[i][1])
-        else:
+        if not answer:
             return None
+
+        results = {}
+
+        for row in answer:
+            (obsid_subsysnr, filename, filesize, md5sum) = row
+            if obsid_subsysnr not in results:
+                results[obsid_subsysnr] = []
+
+            if with_info:
+                results[obsid_subsysnr].append({
+                    'name': filename,
+                    'size': filesize,
+                    'md5sum': md5sum,
+                })
+            else:
+                results[obsid_subsysnr].append(filename)
 
         return results
 

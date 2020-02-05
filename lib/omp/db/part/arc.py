@@ -401,6 +401,9 @@ class ArcDB(OMPDB):
             elif instrument == 'RxA3m':
                 pass
 
+            elif instrument == 'Uu':
+                pass
+
             else:
                 raise Exception('Unknown instrument {0}'.format(instrument))
 

@@ -1233,3 +1233,24 @@ class OMPDB:
             rows = c.fetchall()
             results = [csoinfo(*i) for i in rows]
         return results
+
+
+
+    def get_questionable_observations_byfop(self, utdatestart, telescope):
+        query = ("SELECT u.userid as `fop`, ou.meail, ou.uname, c.instrume, c.utdate, c.obsnum, o.commentauthor, c.project, c.obsid, o.commenttext "
+                 " FROM omp.ompobslog AS o JOIN jcmt.COMMON AS c ON o.obsid=c.obsid "
+                 " JOIN omp.ompprojuser AS u ON c.project=u.projectid "
+                 " JOIN omp.ompuser AS out ON u.userid=ou.userid "
+                 " WHERE o.commentstatus=1 AND u.capacity='SUPPORT' "
+                 " AND o.obslogid IN (SELECT MAX(obslogid) FROM ompobslog GROUP BY obsid) "
+                 " AND c.utdate >= %(utdatestart)s "
+                 " AND telescope=%(telescope)s "
+                 " AND c.project not like '%CAL%' "
+                 " GROUP BY c.obsid "
+                 " ORDER BY fop, c.utdate, c.obsnum");
+        args = {'utdatestart': utdatestart,
+                'telescope': telescope}
+        with self.db.transaction(read_write=False) as c:
+            c.execute(query, args)
+            rows = c.fetchall()
+        return rows

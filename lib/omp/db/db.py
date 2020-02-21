@@ -695,7 +695,7 @@ class OMPDB:
         list of namedtuples, orderd by Dated.
 
         """
-        query = ("SELECT t.projectid, t.date, t.timespent, t.confirmed FROM omp.omptimeacct AS  t "
+        query = ("SELECT t.projectid, t.date, t.timespent, t.confirmed, t.shifttype FROM omp.omptimeacct AS  t "
                  " LEFT JOIN omp.ompproj AS p ON t.projectid=p.projectid "
                  " LEFT JOIN omp.ompprojqueue AS q ON t.projectid=q.projectid ")
         args = {}
@@ -732,7 +732,7 @@ class OMPDB:
 
         query += " ORDER BY t.date ASC "
 
-        timeinfo = namedtuple('timeinfo', 'date timespent confirmed')
+        timeinfo = namedtuple('timeinfo', 'date timespent confirmed shifttype')
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

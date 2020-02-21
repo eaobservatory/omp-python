@@ -501,9 +501,7 @@ class OMPDB:
         group_outer = (" GROUP BY t.project, t.instrume, t.band, t.commentstatus, t.daynight "\
                  "ORDER BY t.project, t.instrume, t.band ASC, t.commentstatus ASC ")
         query = select_outer + from_outer + group_outer
-        print(select_outer)
-        print(from_outer)
-        print(group_outer)
+
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)
             rows = c.fetchall()
@@ -786,7 +784,6 @@ class OMPDB:
             query += ' WHERE ' + ' AND '.join(where_clauses)
 
         with self.db.transaction(read_write=False) as c:
-            print(query, args)
             c.execute(query, args)
 
             rows = c.fetchall()

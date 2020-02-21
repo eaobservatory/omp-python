@@ -454,6 +454,7 @@ class OMPDB:
                  "                       WHEN (wvmtaust+wvmtauen)/2.0 <= 0.12 then '3' "
                  "                       WHEN (wvmtaust+wvmtauen)/2.0 <= 0.2  then '4' "
                  "                       WHEN (wvmtaust+wvmtauen)/2.0 < 50  then '5' "
+                 "                       ELSE 'unknown' "
                  "                     END "
                  "                  ELSE 'unknown' "
                  "             END AS band, "

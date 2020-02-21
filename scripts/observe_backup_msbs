@@ -111,7 +111,7 @@ class ObserveBackup(Frame):
         label.grid(row=0, column=2)
 
         self.band = StringVar()
-        band_list = sorted(bands.keys())
+        band_list = sorted(list(bands.keys()))
         self.band.set(band_list[0])
         band_menu = OptionMenu(self, self.band, *band_list)
         band_menu.grid(row=0, column=3)
@@ -120,7 +120,7 @@ class ObserveBackup(Frame):
         label.grid(row=0, column=4)
 
         self.instrument = StringVar()
-        instrument_list = sorted(instruments.keys())
+        instrument_list = sorted(list(instruments.keys()))
         self.instrument.set(instrument_list[-1])
         instrument_menu = OptionMenu(self, self.instrument, *instrument_list)
         instrument_menu.grid(row=0, column=5)
@@ -129,7 +129,7 @@ class ObserveBackup(Frame):
         label.grid(row=0, column=6)
 
         self.query = StringVar()
-        query_list = sorted(queries.keys())
+        query_list = sorted(list(queries.keys()))
         self.query.set(query_list[0])
         query_menu = OptionMenu(self, self.query, *query_list)
         query_menu.grid(row=0, column=7)

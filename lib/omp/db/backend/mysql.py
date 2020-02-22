@@ -45,7 +45,7 @@ class OMPMySQLLock:
             user=user,
             password=password,
             # Temporary setting for compatability with Python-2 scripts.
-            use_unicode=True,
+            use_unicode=False,
             autocommit=False)
 
     @contextmanager

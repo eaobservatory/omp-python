@@ -23,7 +23,7 @@ generate_jcmt_moc - Create MOC from JCMT observation database
 
 Usage:
     generate_jcmt_moc --output <filename> --order <order>
-        [--backend <backend>] [--instrument <instrument]
+        [--backend <backend>] [--instrument <instrument] [--inbeam <inbeam>]
         [--rest-freq <rest-freq>]
         [--proprietary |--no-proprietary]
         [--proprietary-date <proprietary-date>]
@@ -39,6 +39,7 @@ Options:
     --date-start <date-start>  Start date
     --date-end <date-end>      End date
     --proprietary-date <proprietary-date>  Date for proprietary test
+    --inbeam <inbeam>          Item in beam (POL / FTS / NULL)
 """
 
 
@@ -69,6 +70,17 @@ def main():
         kwargs['proprietary'] = True
     elif args['--no-proprietary']:
         kwargs['proprietary'] = False
+
+    if args['--inbeam']:
+        if args['--inbeam'] == 'POL':
+            kwargs['inbeam_pol'] = True
+        elif args['--inbeam'] == 'FTS':
+            kwargs['inbeam_fts'] = True
+        elif args['--inbeam'] == 'NULL':
+            kwargs['inbeam_null'] = True
+        else:
+            raise Exception(
+                'Inbeam item {} not recognized'.format(args['--inbeam']))
 
     omp = ArcDB()
 

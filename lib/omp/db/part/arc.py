@@ -289,7 +289,8 @@ class ArcDB(OMPDB):
                        object_info=False, no_freq_sw=False,
                        exclude_known_bad=True, proprietary=None,
                        proprietary_date=None,
-                       allow_ec_cal=False, obstype=None):
+                       allow_ec_cal=False, obstype=None,
+                       inbeam_pol=False, inbeam_fts=False, inbeam_null=False):
         """
         Fetch the bounds from the JCMT COMMON table.
         """
@@ -323,6 +324,13 @@ class ArcDB(OMPDB):
         elif not_instrument is not None:
             conditions.append('UPPER(instrume)<>%(ni)s')
             params['ni'] = not_instrument.upper()
+
+        if inbeam_pol:
+            conditions.append('inbeam LIKE "%%pol%%"')
+        if inbeam_fts:
+            conditions.append('inbeam LIKE "%%fts%%"')
+        if inbeam_null:
+            conditions.append('inbeam IS NULL')
 
         if backend is not None:
             conditions.append('UPPER(backend)=%(be)s')

@@ -1,5 +1,5 @@
 # Copyright (C) 2013-2015 Science and Technology Facilities Council.
-# Copyright (C) 2015 East Asian Observatory.
+# Copyright (C) 2015-2021 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,9 +55,10 @@ def obs_bounds_to_moc(order, obs_bounds, project_info=False):
                   file=stderr)
 
     if cells is None:
-        return None
+        moc = None
 
-    moc = MOC(order, np.unique(cells))
+    else:
+        moc = MOC(order, np.unique(cells))
 
     if project_info:
         return (moc, projects)

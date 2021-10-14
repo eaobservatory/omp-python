@@ -19,17 +19,25 @@ from __future__ import absolute_import
 from contextlib import contextmanager
 from threading import Lock
 from types import MethodType
+from sys import version_info
 
 import mysql.connector
 
 from omp.error import OMPDBError
+
+if version_info[0] < 3:
+    default_use_unicode = False
+else:
+    default_use_unicode = True
 
 
 class OMPMySQLLock:
     """MySQL lock and cursor management class.
     """
 
-    def __init__(self, server, user, password, read_only=False):
+    def __init__(
+            self, server, user, password,
+            read_only=False, use_unicode=None):
         """Construct object.
 
         Enabling the read_only option provides some limited protection
@@ -38,14 +46,16 @@ class OMPMySQLLock:
         There doesn't seem to be a way of doing this with DBAPI itself.
         """
 
+        if use_unicode is None:
+            use_unicode = default_use_unicode
+
         self._read_only = read_only
         self._lock = Lock()
         self._conn = mysql.connector.connect(
             host=server,
             user=user,
             password=password,
-            # Temporary setting for compatability with Python-2 scripts.
-            use_unicode=False,
+            use_unicode=use_unicode,
             autocommit=False)
 
     @contextmanager

@@ -80,7 +80,8 @@ bands = {
 instruments = {
     'SCUBA-2': 'scuba-2',
     'HARP': 'harp',
-    'RxA3m': 'rxa3m',
+    'Uu': 'uu',
+    'Aweoweo': 'aweoweo',
 }
 
 queries = {

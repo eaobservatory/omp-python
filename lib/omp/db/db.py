@@ -111,13 +111,14 @@ class OMPDB:
 
     def find_obs_for_ingestion(self, utdate_start, utdate_end=None,
                                no_status_check=False, no_transfer_check=False,
-                               ignore_instruments=None):
+                               ignore_instruments=None,
+                               min_age_hours=4):
         """Find (raw) observations which are due for ingestion into CAOM-2.
 
         This method searches for observations matching these criteria:
 
             1. utdate within the given range
-            2. date_obs at least 4 hours ago
+            2. date_obs at least 4 (by default) hours ago
             3. last_caom_mod NULL, older than last_modified or older than
                last comment
             4. no files still in the process of being transferred
@@ -132,6 +133,8 @@ class OMPDB:
             no_status_check: disable criterion 3, and instead only look for
                              observations with NULL last_caom_mod
             no_transfer_check: disable criterion 4
+            min_age_hours: alter minimum tine for criterion 2, or None
+                           to remove this restriction (default: 4)
 
         Returns:
             A list of OBSID strings.
@@ -154,7 +157,9 @@ class OMPDB:
                 ['"{}"'.format(x) for x in ignore_instruments])))
 
         # Check the observation is finished.  (Started >= 4 hours ago.)
-        where.append('(TIMESTAMPDIFF(HOUR, date_obs, UTC_TIMESTAMP()) >= 4)')
+        if min_age_hours is not None:
+            args['ma'] = min_age_hours
+            where.append('(TIMESTAMPDIFF(HOUR, date_obs, UTC_TIMESTAMP()) >= %(ma)s)')
 
         # Look for last_caom_mod NULL, older than last_modified
         # or (optionally) comment newer than last_caom_mod.

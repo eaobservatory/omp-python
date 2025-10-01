@@ -1079,7 +1079,10 @@ class OMPDB:
         else:
             return [acsisInfo(*i) for i in values]
 
-    def get_observations(self, projectcode, utdatestart=None, utdateend=None, ompstatus=None):
+    def get_observations(
+            self, projectcode,
+            utdatestart=None, utdateend=None, instrument=None, ompstatus=None,
+            with_file=False, with_rxh3=False):
         """Get a project's observations, optionally limited by date/status.
 
         Returns a NamedTuple object containing everything from the
@@ -1094,38 +1097,60 @@ class OMPDB:
         the utdate chang) this value may not be what you expect.
 
         Arguments:
-           projectcode, str: project ID (as it appears in COMMON, usually uppercase)
+           projectcode, str: project ID (as it appears in COMMON, usually uppercase),
+              or None to remove this constraint
 
         Keywords:
            utdatestart, int: YYYYMMDD Only include obs with obsid on or after this date
            utdateend, int: YYYYMMDD Only include obs taken on or before this date.
+           instrument, str:  instrument
 
         """
         query = ("SELECT c.*, "
                  " CASE WHEN p.commentstatus is NULL THEN 0 ELSE p.commentstatus END AS commentstatus, "
-                 " p.commenttext, p.commentauthor, p.commentdate "
-                 " FROM jcmt.COMMON AS c LEFT OUTER JOIN omp.ompobslog AS p "
-                 " ON p.obslogid = (SELECT MAX(obslogid) FROM omp.ompobslog p2 WHERE p2.obsid = c.obsid AND obsactive=1) "
-                 " WHERE c.project=%(p)s ")
+                 " p.commenttext, p.commentauthor, p.commentdate")
+        query_from = ("jcmt.COMMON AS c LEFT OUTER JOIN omp.ompobslog AS p "
+                 " ON p.obslogid = (SELECT MAX(obslogid) FROM omp.ompobslog p2 WHERE p2.obsid = c.obsid AND obsactive=1)")
 
-        args = {'p': projectcode}
+        where = []
+        args = {}
+
+        if projectcode is not None:
+            where.append('c.project=%(p)s')
+            args['p'] = projectcode
 
         if utdatestart:
-            query += ' AND c.utdate >= %(s)s '
+            where.append('c.utdate >= %(s)s')
             args['s'] = utdatestart
         if utdateend:
-            query += ' AND c.utdate <= %(e)s '
+            where.append('c.utdate <= %(e)s')
             args['e'] = utdateend
+
+        if instrument is not None:
+            where.append('c.instrume = %(i)s')
+            args['i'] = instrument
 
         # If wanting to exclude NULL values, change query.
         if ompstatus and ompstatus != 0:
-            query = query.replace('LEFT OUTER JOIN', 'INNER JOIN')
-            query += ' AND p.commentstatus = %(c)s'
+            query_from = query_from.replace('LEFT OUTER JOIN', 'INNER JOIN')
+            where.append('p.commentstatus = %(c)s')
             args['c'] = ompstatus
 
-        elif ompstatus and ompstatus == 0:
-            query += ' AND p.commentstatus = %(c)s'
+        elif (ompstatus is not None) and ompstatus == 0:
+            where.append('(p.commentstatus = %(c)s OR p.commentstatus IS NULL)')
             args['c'] = ompstatus
+
+        if with_file:
+            query = query + ', f.file_id, f.md5sum, f.filesize'
+            query_from = query_from + ' JOIN jcmt.FILES f ON c.obsid=f.obsid'
+
+        if with_rxh3:
+            query = query + ', r.freqband, r.nrows, r.rowlen'
+            query_from = query_from + ' JOIN jcmt.RXH3 r on c.obsid=r.obsid'
+
+        query = query + ' FROM ' + query_from
+        if where:
+            query = query + ' WHERE ' + ' AND '.join(where)
 
         with self.db.transaction(read_write=False) as c:
             c.execute(query, args)

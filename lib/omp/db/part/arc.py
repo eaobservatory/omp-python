@@ -130,6 +130,7 @@ class ArcDB(OMPDB):
             'survey',
             'sw_mode',
             'tau225st',
+            'ingestion_errors',
         ),
 
         'ACSIS': (

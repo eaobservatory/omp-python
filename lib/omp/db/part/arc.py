@@ -14,25 +14,23 @@ logger = logging.getLogger(__name__)
 
 
 class ArcDB(OMPDB):
-    def __init__(self):
+    def __init__(self, dev=False):
         """
         Create a new connection to the MySQL server
         """
 
-        config = get_omp_siteconfig()
+        config = get_omp_siteconfig(dev=dev)
 
         if config.get('hdr_database', 'driver') != 'mysql':
             raise Exception('Configured header database is not MySQL')
 
         OMPDB.__init__(
             self,
+            dev=dev,
             server=config.get('hdr_database', 'server'),
             user=config.get('hdr_database', 'user'),
             password=config.get('hdr_database', 'password'),
             read_only=True)
-
-        self.jcmt_db = 'jcmt.'
-        self.omp_db = 'omp.'
 
     def read(self, query, params={}):
         """
@@ -80,11 +78,14 @@ class ArcDB(OMPDB):
             'SELECT ',
             '    ou.uname,',
             '    op.title',
-            'FROM omp.ompproj op',
-            '    LEFT JOIN omp.ompuser ou'
+            'FROM {0}ompproj op',
+            '    LEFT JOIN {0}ompuser ou',
             '        ON op.pi=ou.userid AND ou.obfuscated=0',
-            'WHERE op.projectid="%s"' % (project_id,)])
-        answer = self.read(sqlcmd)
+            'WHERE op.projectid=%(project)s',
+        ]).format(self.omp_db)
+        answer = self.read(sqlcmd, {
+            'project': project_id,
+        })
 
         if len(answer):
             project_pi = answer[0][0]

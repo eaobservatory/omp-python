@@ -37,12 +37,17 @@ class OMPDB:
     FullObservationInfo = None
     FaultInfo = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, dev=False, **kwargs):
         """Construct new OMP and JCMT database object.
 
         Connects to the EAO MySQL server.
 
         """
+
+        prefix = ('dev' if dev else '')
+
+        self.jcmt_db = '{}jcmt.'.format(prefix)
+        self.omp_db = '{}omp.'.format(prefix)
 
         self.db = OMPMySQLLock(**kwargs)
 
@@ -86,10 +91,12 @@ class OMPDB:
 
         Returns None if no status was found.
         """
-        query = ('SELECT commentstatus FROM omp.ompobslog '
-                'WHERE obslogid = '
-                '(SELECT MAX(obslogid) FROM omp.ompobslog '
-                'WHERE obsid=%(o)s AND obsactive=1)')
+        query = ' '.join([
+            'SELECT commentstatus FROM {0}ompobslog',
+            'WHERE obslogid =',
+            '(SELECT MAX(obslogid) FROM {0}ompobslog',
+            'WHERE obsid=%(o)s AND obsactive=1)',
+        ]).format(self.omp_db)
         args = {'o': obsid}
         if comment:
             query = query.replace('commentstatus', 'commentstatus, commenttext, commentauthor, commentdate')

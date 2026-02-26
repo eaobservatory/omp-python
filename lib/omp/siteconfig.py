@@ -1,5 +1,5 @@
 # Copyright (C) 2014 Science and Technology Facilities Council.
-# Copyright (C) 2017 East Asian Observatory.
+# Copyright (C) 2017-2026 East Asian Observatory.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,9 +22,10 @@ except ImportError:
 import os
 
 default_site_config_file = '/jac_sw/etc/ompsite.cfg'
+dev_site_config_file = '/jac_sw/etc/ompsite-dev.cfg'
 
 
-def get_omp_siteconfig():
+def get_omp_siteconfig(dev=False):
     """Read the OMP site config file.
 
     Returns a SafeConfigParser object.
@@ -32,9 +33,9 @@ def get_omp_siteconfig():
 
     config = SafeConfigParser()
 
-    site_config_file = os.environ.get(
-        'OMP_SITE_CONFIG', default_site_config_file)
-
-    config.read(site_config_file)
+    config.read(
+        dev_site_config_file
+        if dev else
+        os.environ.get('OMP_SITE_CONFIG', default_site_config_file))
 
     return config

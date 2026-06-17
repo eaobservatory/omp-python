@@ -33,6 +33,7 @@ class OMPState:
     BAD = 2
     REJECTED = 3
     JUNK = 4
+    PROBLEM = -1
 
     _info = OrderedDict((
         (GOOD,         OMPStateInfo('Good',        False, False)),
@@ -40,6 +41,7 @@ class OMPState:
         (BAD,          OMPStateInfo('Bad',         True,  False)),
         (REJECTED,     OMPStateInfo('Rejected',    False, False)),
         (JUNK,         OMPStateInfo('Junk',        True,  True)),
+        (PROBLEM,      OMPStateInfo('Problem',     True,  True)),
     ))
 
     STATE_ALL = tuple(_info.keys())

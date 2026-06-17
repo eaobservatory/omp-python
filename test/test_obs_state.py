@@ -15,12 +15,14 @@ class TestState(TestCase):
         self.assertEqual(OMPState.get_name(OMPState.BAD), 'Bad')
         self.assertEqual(OMPState.get_name(OMPState.REJECTED), 'Rejected')
         self.assertEqual(OMPState.get_name(OMPState.JUNK), 'Junk')
+        self.assertEqual(OMPState.get_name(OMPState.PROBLEM), 'Problem')
 
         with self.assertRaises(OMPError):
             OMPState.get_name(999)
 
     def test_is_valid(self):
-        self.assertFalse(OMPState.is_valid(-1))
+        self.assertFalse(OMPState.is_valid(-2))
+        self.assertTrue(OMPState.is_valid(-1))
         self.assertTrue(OMPState.is_valid(0))
         self.assertTrue(OMPState.is_valid(4))
         self.assertFalse(OMPState.is_valid(5))
@@ -34,3 +36,6 @@ class TestState(TestCase):
 
         self.assertTrue(OMPState.is_caom_fail(OMPState.JUNK))
         self.assertTrue(OMPState.is_caom_junk(OMPState.JUNK))
+
+        self.assertTrue(OMPState.is_caom_fail(OMPState.PROBLEM))
+        self.assertTrue(OMPState.is_caom_junk(OMPState.PROBLEM))
